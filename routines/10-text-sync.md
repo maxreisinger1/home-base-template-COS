@@ -1,0 +1,3 @@
+[paste 00-preamble.md here]
+Optional, Mac only. Weekdays hourly :52, 9am to 6pm. Needs the texts kit (see ../texts/README.md). Run this in a thread that has the Mac linked.
+Follow the read-my-texts skill: copy chat.db, run sms-extract.py from cos/texts.lastRowId, delete the copy. Business asks and commitments only become tasks or replies (source "text", from = contact name, never a bare number). Texts waiting on {{OWNER_NAME}} also go to messages/m-text-<chat>-<rowid>. Mark handled when they reply in that chat. Anything older than 7 days with no reply is marked stale unless VIP or money. Never copy personal texts anywhere. Update cos/texts.lastRowId. Stay silent unless something is urgent.

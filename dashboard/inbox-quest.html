@@ -1,0 +1,1356 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Inbox Quest</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+/* Layout: a bright side-scrolling world. Sky and clouds behind, hills and a grass ground strip fixed at the bottom, the HUD floating in the sky, one big signboard card in the middle with two chunky blocks: Archive left, Draft right. Draft Room is a field of little shell critters, one per person; tap one to open the email full page. Single light look on purpose. */
+:root{
+  --sky1:#4fb7ff; --sky2:#bfe8ff; --cloud:#ffffff; --cloudline:#9fd3f5;
+  --ink:#1d2b53; --dim:#53608a; --card:#fffbef; --card2:#fff3d6;
+  --grass:#3cbf4a; --grassdk:#1f7a2c; --dirt:#e0a95e; --dirtdk:#b9783a;
+  --block:#c8702a; --blockdk:#7a3d12; --coin:#ffc91a; --red:#e8473d; --go:#2fb84a; --godk:#17702a; --skyb:#2f8fe0;
+  --f-disp:"Lilita One", "Arial Rounded MT Bold", system-ui, sans-serif;
+  --f-hud:"Lilita One", "Arial Rounded MT Bold", system-ui, sans-serif;
+  --f-body:"Nunito", system-ui, sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{background:var(--sky2);color:var(--ink)}
+body{font-family:var(--f-body);font-size:17px;line-height:1.5;min-height:100%;background:linear-gradient(var(--sky1),var(--sky2) 75%) fixed;transition:background .6s}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--sky1)}
+a{color:var(--skyb)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+
+.wrap{position:relative;z-index:1;max-width:820px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 110px}
+
+/* HUD floating in the sky */
+.hud{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;padding-block:12px 8px;background:linear-gradient(var(--sky1) 75%,transparent)}
+.hudrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.logo{font-family:var(--f-disp);font-size:28px;line-height:1;color:#fff;margin-right:auto;white-space:nowrap;letter-spacing:.02em;
+  text-shadow:3px 0 0 var(--ink),-3px 0 0 var(--ink),0 3px 0 var(--ink),0 -3px 0 var(--ink),3px 3px 0 var(--ink),-3px 3px 0 var(--ink),3px -3px 0 var(--ink),-3px -3px 0 var(--ink),0 6px 0 var(--ink)}
+.logo small{display:block;font-size:11px;color:var(--coin);margin-top:10px;letter-spacing:.14em;text-shadow:1.5px 0 0 var(--ink),-1.5px 0 0 var(--ink),0 1.5px 0 var(--ink),0 -1.5px 0 var(--ink),0 3px 0 var(--ink)}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;width:100%}
+.stat{min-width:0;overflow:hidden;background:rgba(255,255,255,.9);border:3px solid var(--ink);border-radius:12px;padding:4px 8px;display:flex;flex-direction:column;box-shadow:0 4px 0 rgba(29,43,83,.25)}
+.stat b{font-family:var(--f-hud);font-size:24px;line-height:1.05;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink)}
+.stat span{font-family:var(--f-disp);font-size:10px;color:var(--dim);letter-spacing:.08em;white-space:nowrap}
+.stat.gold b{color:#c48a00} .stat.pink b{color:var(--red)} .stat.green b{color:var(--godk)} .stat.cyan b{color:var(--skyb)}
+.iconbtn{background:#fff;border:3px solid var(--ink);border-radius:10px;font-family:var(--f-disp);font-size:12px;padding:7px 10px;color:var(--ink);box-shadow:0 3px 0 var(--ink)}
+.iconbtn[aria-pressed="true"]{background:var(--coin)}
+.goalbar{height:18px;background:#fff;border:3px solid var(--ink);border-radius:999px;position:relative;margin-top:8px;overflow:hidden}
+.goalbar i{position:absolute;inset:0 auto 0 0;background:repeating-linear-gradient(90deg,var(--coin) 0 14px,#ffb000 14px 18px);width:0;transition:width .4s}
+.goalbar em{position:absolute;right:10px;top:-1px;font-family:var(--f-disp);font-style:normal;font-size:12px;color:var(--ink);letter-spacing:.05em}
+.xpbar{display:none}
+nav.tabs{display:flex;gap:6px;margin-top:10px;overflow-x:auto;padding-bottom:4px}
+nav.tabs a{font-family:var(--f-disp);font-size:13px;letter-spacing:.04em;text-decoration:none;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:10px;padding:7px 12px;white-space:nowrap;box-shadow:0 3px 0 var(--ink)}
+nav.tabs a[aria-current="page"]{background:var(--coin)}
+nav.tabs a .n{color:var(--red)}
+.status{font-family:var(--f-body);font-weight:700;font-size:13px;color:var(--ink);margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.status>span{background:rgba(255,255,255,.75);border-radius:999px;padding:2px 10px}
+.status .ok{color:var(--godk)} .status .warn{color:#a05a00}
+
+/* signboard card */
+.stage{margin-top:14px}
+.card{background:var(--card);border:4px solid var(--ink);border-radius:18px;box-shadow:0 8px 0 rgba(29,43,83,.28);padding:20px;position:relative;touch-action:pan-y;user-select:none;transition:transform .2s ease,opacity .2s ease}
+.card.fly-left{transform:translateX(-120%) rotate(-8deg);opacity:0}
+.card.fly-right{transform:translateX(120%) rotate(8deg);opacity:0}
+.pills{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pill{font-family:var(--f-disp);font-size:12px;letter-spacing:.05em;padding:3px 10px;border:2px solid var(--ink);border-radius:999px;background:#fff}
+.pill.respond{background:var(--go);color:#fff} .pill.noise{background:var(--block);color:#fff}
+.pill.age{color:var(--dim)} .pill.nda{background:var(--red);color:#fff} .pill.deal{background:var(--coin)}
+.from{margin-top:12px;font-family:var(--f-disp);font-size:24px;font-weight:400;line-height:1.2;text-wrap:balance}
+.role{font-family:var(--f-body);color:var(--dim);font-size:15px;font-weight:600}
+.subject{font-weight:700;font-size:16px;color:var(--skyb);margin-top:4px;overflow-wrap:anywhere}
+.others{font-size:14px;color:var(--dim);margin-top:4px}
+.summary{font-size:19px;margin-top:12px;max-width:62ch}
+.needs{margin-top:12px;padding:10px 14px;background:var(--card2);border:2px dashed var(--block);border-radius:12px;font-size:16px}
+.needs b{font-family:var(--f-disp);font-weight:400;font-size:12px;color:var(--block);display:block;margin-bottom:2px;letter-spacing:.08em}
+.why{margin-top:8px;font-size:15px;color:var(--dim)}
+details.orig{margin-top:14px;border-top:3px dotted var(--cloudline);padding-top:10px}
+details.orig summary{font-family:var(--f-disp);font-size:14px;color:var(--skyb);cursor:pointer;list-style:none;letter-spacing:.04em}
+details.orig summary::-webkit-details-marker{display:none}
+.msg{margin-top:10px;background:#fff;border:2px solid #d8e6f5;border-radius:12px;padding:10px 12px;font-size:15px;user-select:text}
+.msg .mh{font-size:13px;color:var(--dim);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:700}
+.msg pre{white-space:pre-wrap;word-break:break-word;font-family:var(--f-body);margin:6px 0 0;max-height:340px;overflow:auto}
+.sweep ul{list-style:none;padding:0;margin:12px 0 0;max-height:300px;overflow:auto}
+.sweep li{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #eadfc6;font-size:15px}
+.sweep label{display:flex;gap:8px;flex:1;min-width:0;cursor:pointer}
+.sweep .s{color:var(--dim);overflow-wrap:anywhere}
+
+/* controls: two blocks and a skip */
+.pad{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;margin-top:18px;align-items:stretch}
+.key{border:4px solid var(--ink);border-radius:16px;box-shadow:0 6px 0 var(--ink);padding:14px 10px;min-height:84px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;transition:transform .06s,box-shadow .06s;color:#fff}
+.key:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
+.key .k{font-family:var(--f-disp);font-size:26px;line-height:1;letter-spacing:.03em;text-shadow:0 3px 0 rgba(0,0,0,.25)}
+.key .l{font-size:13px;font-weight:700;opacity:.95}
+.key.left{background:linear-gradient(var(--block),#a85a1e);}
+.key.right{background:linear-gradient(var(--go),#22963a)}
+.key.mid{background:#fff;color:var(--ink);min-width:84px}
+.key.mid .k{font-size:16px;text-shadow:none}
+.key.suggest{animation:bob 1.1s ease-in-out infinite;box-shadow:0 6px 0 var(--ink),0 0 0 5px var(--coin)}
+@keyframes bob{50%{transform:translateY(-4px)}}
+.key[disabled]{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.btn{font-family:var(--f-disp);font-size:13px;letter-spacing:.04em;background:#fff;border:3px solid var(--ink);border-radius:10px;box-shadow:0 4px 0 var(--ink);padding:8px 12px;color:var(--ink);text-decoration:none;display:inline-block}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn.primary{background:var(--coin)}
+.btn.pink{background:var(--go);color:#fff}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.hint{font-size:14px;color:var(--ink);font-weight:600}
+.hintbox{background:rgba(255,255,255,.8);border-radius:999px;padding:4px 12px}
+.toast{position:fixed;left:50%;bottom:calc(70px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#fff;border:3px solid var(--ink);border-radius:14px;box-shadow:0 5px 0 var(--ink);padding:10px 14px;font-size:15px;font-weight:600;z-index:40;max-width:min(92vw,560px);display:flex;gap:12px;align-items:center}
+.toast button{font-family:var(--f-disp);font-size:12px;background:var(--coin);border:2px solid var(--ink);border-radius:8px;padding:5px 10px}
+.pop{position:fixed;pointer-events:none;z-index:45;font-family:var(--f-disp);font-size:22px;color:var(--coin);text-shadow:2px 0 0 var(--ink),-2px 0 0 var(--ink),0 2px 0 var(--ink),0 -2px 0 var(--ink),0 4px 0 var(--ink);animation:rise 1s ease-out forwards}
+@keyframes rise{to{transform:translateY(-70px);opacity:0}}
+.combo{font-family:var(--f-disp);font-size:16px;color:#fff;text-shadow:0 2px 0 var(--ink);text-align:center;margin-top:10px;min-height:20px;letter-spacing:.05em}
+.empty{text-align:center;padding:30px 12px}
+.empty h2{font-family:var(--f-disp);font-weight:400;font-size:28px;color:var(--block);margin:0}
+.empty p{color:var(--dim)}
+
+/* lists */
+h2.sec{font-family:var(--f-disp);font-weight:400;font-size:26px;color:#fff;margin:22px 0 8px;text-shadow:2px 0 0 var(--ink),-2px 0 0 var(--ink),0 2px 0 var(--ink),0 -2px 0 var(--ink),0 4px 0 var(--ink)}
+.item{background:var(--card);border:4px solid var(--ink);border-radius:16px;box-shadow:0 6px 0 rgba(29,43,83,.28);padding:16px;margin-top:12px}
+.item .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.item h3{margin:6px 0 2px;font-family:var(--f-disp);font-weight:400;font-size:20px;line-height:1.25}
+.item .ctx{color:var(--dim);font-size:15px}
+textarea{width:100%;min-height:150px;background:#fff;color:var(--ink);border:3px solid var(--ink);border-radius:12px;padding:10px 12px;font:16px/1.5 var(--f-body);margin-top:10px;resize:vertical}
+input[type=text],input[type=number]{background:#fff;color:var(--ink);border:3px solid var(--ink);border-radius:10px;padding:8px 10px;font:16px var(--f-body);min-width:0}
+.st{font-family:var(--f-disp);font-size:12px;letter-spacing:.05em;padding:3px 10px;border:2px solid var(--ink);border-radius:999px;background:#fff}
+.st.requested,.st.writing{background:var(--coin)} .st.ready{background:#bfe8ff} .st.placed{background:var(--go);color:#fff} .st.done{color:var(--dim)} .st.failed{background:var(--red);color:#fff}
+.wallet{font-family:var(--f-disp);font-size:68px;line-height:1;color:var(--coin);text-shadow:3px 0 0 var(--ink),-3px 0 0 var(--ink),0 3px 0 var(--ink),0 -3px 0 var(--ink),0 6px 0 var(--ink)}
+.ledger{background:var(--card);border:3px solid var(--ink);border-radius:14px;padding:8px 12px;font-size:15px}
+.ledger div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #eadfc6;padding:4px 0}
+.ledger .p{color:var(--godk);font-weight:800} .ledger .m{color:var(--red);font-weight:800}
+.formrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.formrow input[type=text]{flex:2 1 160px} .formrow input[type=number]{flex:1 1 80px;width:90px}
+section>.hint{background:rgba(255,255,255,.85);border-radius:12px;padding:8px 12px}
+section>.hint:empty{display:none}
+
+
+/* Draft Room: shell critters */
+.flagbtn{position:absolute;top:12px;right:12px;z-index:3;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:#fff;border:3px solid var(--ink);border-radius:10px;box-shadow:0 3px 0 var(--ink);padding:0;cursor:pointer;opacity:.55;transition:opacity .15s,transform .06s}
+.flagbtn:hover,.flagbtn:focus-visible,.flagbtn.on{opacity:1}
+.flagbtn.on{background:#ffe1e3}
+.flagbtn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.flagbtn.inline{position:static}
+.topr{display:flex;align-items:center;gap:10px}
+.card > .pills{padding-right:50px}
+.critter .cflag{position:absolute;left:-2px;top:-8px;z-index:2;background:#fff;border:3px solid var(--ink);border-radius:999px;width:30px;height:30px;display:flex;align-items:center;justify-content:center}
+.critter .cflag svg{width:18px;height:18px;filter:none}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-top:8px}
+.pc{position:relative;background:rgba(255,255,255,.92);border:3px solid var(--ink);border-radius:16px;box-shadow:0 4px 0 rgba(29,43,83,.25);transition:transform .12s}
+.pc:hover{transform:translateY(-2px)}
+.pc.flag{border-color:#e63946;box-shadow:0 4px 0 #e63946}
+.pcmain{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;padding:8px 40px 8px 8px;text-align:left;color:var(--ink);cursor:pointer;border-radius:14px}
+.pcav{flex:none;width:62px;height:62px;border-radius:14px;background:radial-gradient(circle at 50% 35%,#ffffff 0,#e3f1ff 70%);display:flex;align-items:center;justify-content:center}
+.pcav svg{width:58px;height:58px;display:block;animation:bob 3s ease-in-out infinite;animation-delay:var(--d,0s)}
+.pctx{display:flex;flex-direction:column;min-width:0;gap:1px}
+.pcname{font-family:var(--f-disp);font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px}
+.pcflag svg{width:16px;height:16px;display:block}
+.pcsub{font-size:13px;line-height:1.3;color:var(--dim);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pcst{font-family:var(--f-disp);font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim)}
+.pcst.ready{color:#1f8f3a} .pcst.placed{color:#2f6fd0} .pcst.todo{color:#c26a00}
+.pcarch{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:8px;border:2px solid var(--ink);background:#fff;color:var(--ink);font-size:14px;line-height:1;padding:0;opacity:.45;cursor:pointer}
+.pcarch:hover,.pcarch:focus-visible{opacity:1;background:#e7f8ea}
+@media (prefers-reduced-motion: reduce){.pcav svg{animation:none}}
+.snzbox{margin-top:22px;background:rgba(255,255,255,.85);border:3px solid var(--ink);border-radius:14px;padding:8px 12px}
+.snzbox summary{font-family:var(--f-disp);font-size:14px;letter-spacing:.04em;cursor:pointer;color:var(--ink)}
+.snzrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-top:1px dashed #c9d8ea;font-size:15px}
+.snzrow .btn{font-size:11px;padding:5px 8px}
+.lane{display:flex;align-items:center;gap:10px;margin-top:18px;font-family:var(--f-disp);font-size:15px;letter-spacing:.05em;color:var(--ink)}
+.lane span{background:#fff;border:3px solid var(--ink);border-radius:999px;padding:3px 14px;box-shadow:0 3px 0 var(--ink)}
+.lane.hot span{background:var(--red);color:#fff}
+.lane b{font-size:13px;color:var(--ink);opacity:.7}
+.lane + .field{margin-top:4px}
+.field{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:22px 12px;margin-top:18px;padding:18px 6px}
+.critter{position:relative;background:none;border:0;padding:0;width:96px;height:118px;margin:0 auto;display:block;animation:float 2.4s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-8px)}}
+.critter svg{display:block;width:96px;height:96px;filter:drop-shadow(0 4px 0 rgba(29,43,83,.2));transition:transform .15s}
+.critter:hover svg,.critter:focus-visible svg{transform:scale(1.08) rotate(-3deg)}
+.critter .tag{position:absolute;left:50%;transform:translateX(-50%);top:96px;font-family:var(--f-disp);font-size:14px;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:999px;padding:0 10px;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}
+.critter .bubble{position:absolute;right:-4px;top:-8px;z-index:2;background:#fff;border:3px solid var(--ink);border-radius:999px;font-family:var(--f-disp);font-size:13px;min-width:26px;height:26px;line-height:20px;text-align:center}
+.critter .bubble.ok{background:var(--go);color:#fff}
+.critter.mini{width:72px;height:72px;animation:none;flex:none;margin:0}
+.critter.mini svg{width:72px;height:72px}
+.draft-one .who{display:flex;gap:6px;align-items:center;margin-top:10px}
+.draft-one .who h3{margin:0;font-size:26px}
+.opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.opt{text-align:left;background:#fff;border:3px solid var(--ink);border-radius:14px;padding:10px 12px;box-shadow:0 4px 0 rgba(29,43,83,.25);font-size:14px;line-height:1.4;white-space:pre-wrap;display:flex;flex-direction:column;gap:4px}
+.opt b{font-family:var(--f-disp);font-weight:400;font-size:13px;color:var(--block);letter-spacing:.05em}
+.opt.on{background:#eaffe8;border-color:var(--godk);box-shadow:0 0 0 4px var(--coin)}
+@media (max-width:640px){ .opts{grid-template-columns:1fr} }
+
+/* drawer + celebration */
+.scrim{position:fixed;inset:0;background:rgba(29,43,83,.45);z-index:30}
+.drawer{position:fixed;inset:0 0 0 auto;width:min(420px,100%);background:var(--card);border-left:4px solid var(--ink);z-index:31;overflow:auto;padding:calc(18px + env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) 18px}
+.drawer h2.sec{color:var(--ink);text-shadow:none}
+.drawer label{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;font-size:15px;font-weight:600}
+.drawer input[type=number]{width:96px}
+.drawer .hint{color:var(--dim)}
+.celebrate{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(79,183,255,.88);text-align:center;padding:24px}
+.celebrate h1{font-family:var(--f-disp);font-weight:400;font-size:clamp(34px,8vw,64px);color:var(--coin);margin:0 0 8px;text-shadow:4px 0 0 var(--ink),-4px 0 0 var(--ink),0 4px 0 var(--ink),0 -4px 0 var(--ink),0 8px 0 var(--ink)}
+.celebrate p{font-size:19px;font-weight:700;color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:14px;padding:10px 14px;max-width:440px;margin:0 auto 14px}
+.flame{display:inline-block;width:12px;height:14px;margin-right:4px;vertical-align:-1px;border-radius:50% 50% 40% 40%;background:radial-gradient(circle at 50% 70%,var(--coin) 0 35%,#ff8a2a 36% 60%,var(--red) 61%)}
+@media (max-width:520px){
+  body{font-size:16px}
+  .summary{font-size:18px}
+  .stat b{font-size:20px}
+  .logo{font-size:23px}
+  .key{min-height:76px}
+  .key .k{font-size:22px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+
+/* ---------- v10 art pass: richer world, mascot, airmail cards ---------- */
+:root{--sky1:#379ff5;--sky2:#d6f0ff}
+body{background:linear-gradient(#379ff5 0,#63bcff 34%,#b7e4ff 68%,#eaf8ff 100%) fixed}
+.world{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.world svg{position:absolute;display:block}
+.world .sun{top:84px;right:5%;width:150px;height:150px}
+.world .sun .rays{transform-origin:100px 100px;animation:spin 80s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.world .cloud{left:0;aspect-ratio:200/112;animation:drift linear infinite;filter:drop-shadow(0 6px 0 rgba(29,43,83,.08))}
+@keyframes drift{from{transform:translateX(-30vw)}to{transform:translateX(130vw)}}
+.world .far{left:0;bottom:100px;width:100%;height:300px}
+.world .mid{left:0;bottom:58px;width:100%;height:260px}
+.world .ground{left:0;bottom:0;width:100%;height:72px}
+.flick{transform-origin:0 0;animation:flick .9s ease-in-out infinite alternate}
+@keyframes flick{from{transform:scale(1,.9) skewX(-3deg)}to{transform:scale(1.05,1.12) skewX(4deg)}}
+.world .balloon{top:20%;left:3%;width:74px;height:115px;animation:floaty 9s ease-in-out infinite}
+@keyframes floaty{50%{transform:translate(10px,-18px) rotate(3deg)}}
+.world .plane{top:26%;left:0;width:54px;height:37px;animation:plane 48s linear infinite}
+@keyframes plane{0%{transform:translate(-12vw,40px) rotate(8deg)}25%{transform:translate(22vw,-10px) rotate(-6deg)}50%{transform:translate(55vw,30px) rotate(8deg)}75%{transform:translate(88vw,-14px) rotate(-6deg)}100%{transform:translate(125vw,24px) rotate(6deg)}}
+.world .coin{width:34px;height:34px;animation:coin 3.2s ease-in-out infinite}
+.world .coin.c1{top:44%;left:6%} .world .coin.c2{top:38%;right:4%;animation-delay:-1s} .world .coin.c3{top:60%;right:9%;animation-delay:-2s}
+@keyframes coin{50%{transform:translateY(-10px) scaleX(.55)}}
+.world .snail{bottom:60px;left:0;width:60px;height:41px;animation:crawl 420s linear infinite}
+@keyframes crawl{from{transform:translateX(-10vw)}to{transform:translateX(110vw)}}
+@media (max-width:1100px){.world .coin,.world .balloon{display:none}}
+@media (max-width:700px){.world .sun{width:96px;height:96px;top:auto;bottom:330px;right:4%}.world .far{height:240px}.world .mid{height:210px}}
+
+.hud{background:linear-gradient(rgba(55,159,245,.96) 70%,rgba(55,159,245,0))}
+.logo{display:flex;align-items:center;gap:10px}
+.logo>svg{width:50px;height:50px;flex:none;animation:hop 2.6s ease-in-out infinite}
+@keyframes hop{50%{transform:translateY(-4px) rotate(-4deg)}}
+.stat{position:relative;background:linear-gradient(#fff,#eef7ff);border-radius:14px;padding:6px 10px 5px;box-shadow:0 4px 0 rgba(29,43,83,.3),inset 0 -3px 0 rgba(47,143,224,.12)}
+.stat b{font-family:var(--f-disp);font-weight:400;font-size:25px;letter-spacing:.01em}
+.stat .si{position:absolute;top:6px;right:7px;width:20px;height:20px}
+.flame{width:14px;height:17px;vertical-align:-2px;border-radius:50% 50% 45% 45%/60% 60% 40% 40%;border:2px solid var(--ink);background:radial-gradient(circle at 50% 72%,#fff3b0 0 22%,var(--coin) 23% 45%,#ff8a2a 46% 70%,var(--red) 71%)}
+.goalbar{height:22px;box-shadow:0 3px 0 rgba(29,43,83,.3)}
+.goalbar i{background:linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,0) 55%),repeating-linear-gradient(90deg,var(--coin) 0 14px,#ffb000 14px 18px);border-right:3px solid var(--ink)}
+.goalbar em{top:1px}
+nav.tabs a{border-radius:12px;padding:8px 13px;transition:transform .08s}
+nav.tabs a[aria-current="page"]{background:linear-gradient(#ffe066,var(--coin));transform:translateY(-2px);box-shadow:0 5px 0 var(--ink)}
+
+.card{background:linear-gradient(#fffdf6,#fff5da);border-radius:22px;padding:30px 22px 22px;box-shadow:0 8px 0 rgba(29,43,83,.3),0 26px 40px -22px rgba(20,34,80,.55)}
+.card::before{content:"";position:absolute;inset:0 0 auto 0;height:11px;border-radius:17px 17px 0 0;border-bottom:3px solid var(--ink);background:repeating-linear-gradient(-55deg,var(--red) 0 13px,#fffdf6 13px 26px,var(--skyb) 26px 39px,#fffdf6 39px 52px)}
+.flagbtn{top:22px}
+.from{font-size:26px}
+.needs{border-style:solid;border-color:var(--ink);box-shadow:0 3px 0 rgba(29,43,83,.2);background:#fff0c4}
+.pill.wait{background:#fff;color:var(--dim);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.45}}
+.key{border-radius:18px;box-shadow:0 6px 0 var(--ink),0 16px 22px -14px rgba(20,34,80,.6),inset 0 4px 0 rgba(255,255,255,.35),inset 0 -7px 0 rgba(0,0,0,.14);position:relative}
+.key:active{box-shadow:0 1px 0 var(--ink),inset 0 4px 0 rgba(255,255,255,.35),inset 0 -7px 0 rgba(0,0,0,.14)}
+.key .k{display:flex;align-items:center;gap:8px}
+.key .k svg{width:30px;height:30px;flex:none}
+.key.left{background:linear-gradient(#e58f43,#b9621f)}
+.key.right{background:linear-gradient(#45d163,#1f9a3a)}
+.key.mid{background:linear-gradient(#fff,#e6f3ff)}
+.key .cap{position:absolute;top:7px;left:9px;font-family:var(--f-disp);font-style:normal;font-size:12px;line-height:1;color:var(--ink);background:rgba(255,255,255,.85);border:2px solid var(--ink);border-radius:6px;padding:2px 6px}
+.key.right .cap{left:auto;right:9px}
+.key.suggest{box-shadow:0 6px 0 var(--ink),0 0 0 5px var(--coin),0 0 26px 6px rgba(255,201,26,.7),inset 0 4px 0 rgba(255,255,255,.35),inset 0 -7px 0 rgba(0,0,0,.14)}
+@media (hover:none){.key .cap{display:none}}
+.btn{border-radius:12px}
+.empty{padding:14px 12px 22px}
+.empty .mascot{width:120px;height:120px;display:block;margin:0 auto 4px;animation:hop 1.8s ease-in-out infinite}
+.empty .mascot.run{animation:run .5s ease-in-out infinite alternate}
+@keyframes run{from{transform:translate(-6px,0) rotate(-6deg)}to{transform:translate(6px,-8px) rotate(6deg)}}
+.empty h2{font-size:30px}
+.empty p{max-width:46ch;margin:8px auto 0}
+.lbar{height:16px;max-width:320px;margin:16px auto 0;background:#fff;border:3px solid var(--ink);border-radius:999px;overflow:hidden}
+.lbar i{display:block;height:100%;background:repeating-linear-gradient(-55deg,var(--go) 0 10px,#6fe08a 10px 20px);background-size:200% 100%;transition:width .5s;animation:slide 1s linear infinite}
+@keyframes slide{to{background-position:-23px 0}}
+.pcav{border:2px solid var(--ink);background:radial-gradient(circle at 50% 30%,#fff 0,#dff0ff 55%,#b9dcff 100%)}
+.pc{border-radius:18px;background:linear-gradient(#fff,#f3f9ff)}
+.item{border-radius:20px;background:linear-gradient(#fffdf6,#fff5da)}
+.celebrate{overflow:hidden;background:radial-gradient(circle at 50% 40%,rgba(255,255,255,.95),rgba(99,188,255,.92) 60%)}
+.celebrate .cz{width:150px;height:150px;animation:hop 1s ease-in-out infinite}
+.celebrate .cf{position:absolute;top:-20px;width:10px;height:16px;border:2px solid var(--ink);border-radius:3px;animation:fall linear infinite}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+@media (max-width:520px){.key .cap{display:none}.key .l{font-size:12px}.stat b{font-size:19px}.stat .si{display:none}.stat{padding:5px 7px 4px}.logo>svg{width:40px;height:40px}.key .k svg{width:24px;height:24px}.from{font-size:22px}.card{padding:28px 16px 18px}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="a-cloud" viewBox="0 0 200 112">
+<g fill="#fff" stroke="#7fbdf0" stroke-width="7" stroke-linejoin="round"><circle cx="52" cy="68" r="30"/><circle cx="94" cy="46" r="36"/><circle cx="138" cy="56" r="30"/><circle cx="162" cy="76" r="22"/><rect x="40" y="62" width="134" height="36" rx="18"/></g>
+<g fill="#fff"><circle cx="52" cy="68" r="30"/><circle cx="94" cy="46" r="36"/><circle cx="138" cy="56" r="30"/><circle cx="162" cy="76" r="22"/><rect x="40" y="62" width="134" height="36" rx="18"/></g>
+<path d="M30 82q22 12 62 8q42 6 86-8q-2 16-22 16h-100q-22 0-26-16z" fill="#d3eaff"/>
+<ellipse cx="86" cy="64" rx="4.2" ry="6.5" fill="#1d2b53"/><ellipse cx="114" cy="64" rx="4.2" ry="6.5" fill="#1d2b53"/><circle cx="87.5" cy="61" r="1.6" fill="#fff"/><circle cx="115.5" cy="61" r="1.6" fill="#fff"/>
+<path d="M94 74q6 6 12 0" fill="none" stroke="#1d2b53" stroke-width="2.6" stroke-linecap="round"/><ellipse cx="74" cy="74" rx="6" ry="3.5" fill="#ffb3c7" opacity=".8"/><ellipse cx="126" cy="74" rx="6" ry="3.5" fill="#ffb3c7" opacity=".8"/>
+</symbol>
+<symbol id="a-zip" viewBox="0 0 120 120">
+<ellipse cx="60" cy="113" rx="30" ry="5" fill="#1d2b53" opacity=".18"/>
+<path d="M47 88v14M73 88v14" stroke="#1d2b53" stroke-width="6" stroke-linecap="round"/><ellipse cx="43" cy="106" rx="10" ry="5.5" fill="#e8473d" stroke="#1d2b53" stroke-width="3"/><ellipse cx="77" cy="106" rx="10" ry="5.5" fill="#e8473d" stroke="#1d2b53" stroke-width="3"/>
+<path d="M22 64q-14 2-13-12M98 64q12 6 15-8" fill="none" stroke="#1d2b53" stroke-width="5" stroke-linecap="round"/><circle cx="9" cy="50" r="5" fill="#fff7e0" stroke="#1d2b53" stroke-width="3"/><circle cx="113" cy="55" r="5" fill="#fff7e0" stroke="#1d2b53" stroke-width="3"/>
+<rect x="20" y="32" width="80" height="58" rx="10" fill="#fff7e0" stroke="#1d2b53" stroke-width="4"/>
+<path d="M22 84l28-22M98 84l-28-22" stroke="#e9d7ad" stroke-width="3" stroke-linecap="round"/>
+<path d="M23 35h74l-37 30z" fill="#ffe7ae" stroke="#1d2b53" stroke-width="4" stroke-linejoin="round"/>
+<circle cx="60" cy="62" r="7" fill="#e8473d" stroke="#1d2b53" stroke-width="3"/><path d="M57 62l2.4 2.4l4-4.6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<ellipse cx="45" cy="74" rx="4" ry="5.5" fill="#1d2b53"/><ellipse cx="75" cy="74" rx="4" ry="5.5" fill="#1d2b53"/><circle cx="46.4" cy="71.6" r="1.5" fill="#fff"/><circle cx="76.4" cy="71.6" r="1.5" fill="#fff"/>
+<path d="M54 80q6 6 12 0" fill="none" stroke="#1d2b53" stroke-width="2.8" stroke-linecap="round"/><ellipse cx="35" cy="81" rx="5" ry="3" fill="#ff9db5" opacity=".85"/><ellipse cx="85" cy="81" rx="5" ry="3" fill="#ff9db5" opacity=".85"/>
+<path d="M28 31q4-22 32-22q28 0 32 22z" fill="#2f6fd0" stroke="#1d2b53" stroke-width="4" stroke-linejoin="round"/><path d="M52 27h52q6 1 3 6h-50z" fill="#1d4fa8" stroke="#1d2b53" stroke-width="3.5" stroke-linejoin="round"/><circle cx="56" cy="19" r="5" fill="#ffc91a" stroke="#1d2b53" stroke-width="2.5"/>
+</symbol>
+<symbol id="a-flower" viewBox="0 0 40 60"><path d="M20 58V28" stroke="#1f7a2c" stroke-width="4" stroke-linecap="round"/><path d="M20 46q-12 0-13-10q11 0 13 10zM20 50q12-2 14-11q-12 0-14 11z" fill="#3cbf4a" stroke="#1f7a2c" stroke-width="2"/><g fill="currentColor" stroke="#1d2b53" stroke-width="2"><circle cx="20" cy="9" r="7"/><circle cx="31" cy="17" r="7"/><circle cx="27" cy="29" r="7"/><circle cx="13" cy="29" r="7"/><circle cx="9" cy="17" r="7"/></g><circle cx="20" cy="20" r="6.5" fill="#ffc91a" stroke="#1d2b53" stroke-width="2"/></symbol>
+<symbol id="a-coin" viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="#ffc91a" stroke="#1d2b53" stroke-width="3"/><circle cx="20" cy="20" r="11.5" fill="#ffdf6b" stroke="#d99400" stroke-width="2"/><path d="M13 15.5h14v9.5h-14zM13.5 16l6.5 5l6.5-5" fill="none" stroke="#b97700" stroke-width="2" stroke-linejoin="round"/><path d="M9 14q3-6 9-7" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".8"/></symbol>
+<symbol id="a-plane" viewBox="0 0 64 44"><path d="M3 20L61 3L40 41L29 27z" fill="#fff" stroke="#1d2b53" stroke-width="3" stroke-linejoin="round"/><path d="M29 27v13l8-7z" fill="#bfdcf7" stroke="#1d2b53" stroke-width="3" stroke-linejoin="round"/><path d="M29 27L61 3" stroke="#1d2b53" stroke-width="2.5"/></symbol>
+<symbol id="a-pine" viewBox="0 0 60 100"><rect x="25" y="78" width="10" height="22" fill="#a8672e" stroke="#1d2b53" stroke-width="3"/><g fill="#2f9e4a" stroke="#17602a" stroke-width="3" stroke-linejoin="round"><path d="M30 46L57 86H3z"/><path d="M30 25L53 62H7z"/><path d="M30 5L49 38H11z"/></g><path d="M30 12l-9 17M30 34l-12 19M30 56l-14 21" stroke="#6fd47f" stroke-width="3" stroke-linecap="round" opacity=".7"/></symbol>
+<symbol id="a-tree" viewBox="0 0 80 104"><rect x="35" y="60" width="10" height="42" fill="#a8672e" stroke="#1d2b53" stroke-width="3"/><g fill="#56c95f" stroke="#1f7a2c" stroke-width="7"><circle cx="40" cy="34" r="26"/><circle cx="20" cy="50" r="16"/><circle cx="60" cy="50" r="16"/></g><g fill="#56c95f"><circle cx="40" cy="34" r="26"/><circle cx="20" cy="50" r="16"/><circle cx="60" cy="50" r="16"/></g><circle cx="31" cy="25" r="10" fill="#8fe486" opacity=".8"/><circle cx="52" cy="40" r="4" fill="#e8473d" stroke="#1d2b53" stroke-width="1.5"/><circle cx="26" cy="50" r="4" fill="#e8473d" stroke="#1d2b53" stroke-width="1.5"/></symbol>
+<symbol id="i-mail" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5" fill="#fff" stroke="#1d2b53" stroke-width="2"/><path d="M3.5 7l8.5 6.5L20.5 7" fill="none" stroke="#1d2b53" stroke-width="2" stroke-linejoin="round"/></symbol>
+<symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="#fff" stroke="#1d2b53" stroke-width="2"/><circle cx="12" cy="12" r="6" fill="#e8473d"/><circle cx="12" cy="12" r="2.6" fill="#fff"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6l6.6.9l-4.8 4.6l1.2 6.5L12 17.4l-5.9 3.1l1.2-6.5L2.5 9.4l6.6-.9z" fill="#ffc91a" stroke="#1d2b53" stroke-width="2" stroke-linejoin="round"/></symbol>
+<symbol id="i-box" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="1.5" fill="#ffe0b0" stroke="#1d2b53" stroke-width="2"/><rect x="2.5" y="4" width="19" height="5.5" rx="1.5" fill="#fff" stroke="#1d2b53" stroke-width="2"/><path d="M9.5 13.5h5" stroke="#1d2b53" stroke-width="2" stroke-linecap="round"/></symbol>
+<symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l1.2-5L16 4.2a2 2 0 0 1 2.8 0l1 1a2 2 0 0 1 0 2.8L9 18.8z" fill="#fff" stroke="#1d2b53" stroke-width="2" stroke-linejoin="round"/><path d="M14 6.2l3.8 3.8" stroke="#1d2b53" stroke-width="2"/><path d="M4 20l1.2-5l3.8 3.8z" fill="#ffc91a" stroke="#1d2b53" stroke-width="2" stroke-linejoin="round"/></symbol>
+<pattern id="hillTex" width="46" height="34" patternUnits="userSpaceOnUse"><path d="M6 12q5 6 10 0M29 28q5 6 10 0" fill="none" stroke="#1f7a2c" stroke-width="2.5" stroke-linecap="round" opacity=".35"/><circle cx="34" cy="8" r="2" fill="#fff" opacity=".35"/></pattern>
+<pattern id="gp" width="96" height="72" patternUnits="userSpaceOnUse"><rect width="96" height="72" fill="#dda15a"/><rect y="52" width="96" height="20" fill="#c98845"/><g fill="#b9783a"><ellipse cx="14" cy="38" rx="6" ry="3.5"/><ellipse cx="52" cy="46" rx="8" ry="4"/><ellipse cx="82" cy="34" rx="5" ry="3"/><ellipse cx="34" cy="62" rx="6" ry="3" fill="#a96a30"/><ellipse cx="74" cy="60" rx="7" ry="3.5" fill="#a96a30"/></g><g fill="#f0c283"><ellipse cx="30" cy="34" rx="3" ry="1.6"/><ellipse cx="66" cy="38" rx="3" ry="1.6"/></g><path d="M0 0h96v17q-8 12-16 0q-8 12-16 0q-8 12-16 0q-8 12-16 0q-8 12-16 0q-8 12-16 0z" fill="#3cbf4a" stroke="#1f7a2c" stroke-width="3"/><rect width="96" height="6" fill="#7fe07a"/><path d="M10 6v-1M40 12l3-5l3 5M70 11l3-5l3 5" stroke="#1f7a2c" stroke-width="2" fill="none" stroke-linecap="round" opacity=".5"/></pattern>
+</defs></svg>
+<div class="world" aria-hidden="true">
+  <svg class="sun" viewBox="0 0 200 200"><g class="rays" fill="#ffe27a"><path d="M100 4l10 30h-20zM100 196l10-30h-20zM4 100l30-10v20zM196 100l-30-10v20zM32 32l28 14l-14 14zM168 32l-14 28l-14-14zM32 168l14-28l14 14zM168 168l-28-14l14-14z"/></g><circle cx="100" cy="100" r="50" fill="#ffd23f" stroke="#f0a000" stroke-width="5"/><circle cx="84" cy="80" r="16" fill="#fff3b0" opacity=".7"/><ellipse cx="84" cy="96" rx="5" ry="7.5" fill="#1d2b53"/><ellipse cx="116" cy="96" rx="5" ry="7.5" fill="#1d2b53"/><path d="M88 114q12 12 24 0" fill="none" stroke="#1d2b53" stroke-width="4" stroke-linecap="round"/><ellipse cx="70" cy="112" rx="8" ry="5" fill="#ff9a6b" opacity=".7"/><ellipse cx="130" cy="112" rx="8" ry="5" fill="#ff9a6b" opacity=".7"/></svg>
+  <svg class="far" viewBox="0 0 1600 300" preserveAspectRatio="xMidYMax slice"><path d="M-20 300V210L120 110L220 180L360 60L520 200L640 130L760 210L900 90L1060 210L1180 140L1300 200L1440 70L1620 220V300z" fill="#c3d4fb"/><g fill="#fff"><path d="M360 60L325 90l14-4l10 10l11-12l12 10l10-8l12 4z"/><path d="M900 90L865 120l14-4l12 10l12-12l14 10l11-8l12 4z"/><path d="M1440 70L1408 100l12-4l12 10l12-12l12 10l10-8l10 4z"/><path d="M120 110L86 134l12-3l12 8l12-10l12 8l10-6l10 3z"/></g><path d="M-20 300V250L100 190L240 250L420 160L600 250L780 180L940 250L1120 150L1300 250L1460 180L1620 250V300z" fill="#a9c0f5"/></svg>
+  <svg class="cloud" viewBox="0 0 200 112" style="top:13%;width:190px;animation-duration:110s;animation-delay:-20s"><use href="#a-cloud"/></svg>
+  <svg class="cloud" viewBox="0 0 200 112" style="top:33%;width:130px;animation-duration:150s;animation-delay:-95s"><use href="#a-cloud"/></svg>
+  <svg class="cloud" viewBox="0 0 200 112" style="top:52%;width:230px;animation-duration:170s;animation-delay:-8s"><use href="#a-cloud"/></svg>
+  <svg class="cloud" viewBox="0 0 200 112" style="top:6%;width:110px;animation-duration:130s;animation-delay:-60s"><use href="#a-cloud"/></svg>
+  <svg class="balloon" viewBox="0 0 80 124"><path d="M22 76l10 22M58 76l-10 22" stroke="#1d2b53" stroke-width="2"/><ellipse cx="40" cy="42" rx="33" ry="39" fill="#e8473d" stroke="#1d2b53" stroke-width="3.5"/><path d="M40 3q-22 39 0 78q22-39 0-78z" fill="#fff7e0"/><path d="M19 12q-10 30 6 62M61 12q10 30-6 62" fill="none" stroke="#ffb0a8" stroke-width="4" stroke-linecap="round"/><ellipse cx="40" cy="42" rx="33" ry="39" fill="none" stroke="#1d2b53" stroke-width="3.5"/><rect x="29" y="98" width="22" height="16" rx="3" fill="#c8702a" stroke="#1d2b53" stroke-width="3"/><path d="M29 104h22" stroke="#7a3d12" stroke-width="2"/><rect x="33" y="90" width="14" height="10" rx="1.5" fill="#fff" stroke="#1d2b53" stroke-width="2"/><path d="M33.5 91l6.5 5l6.5-5" fill="none" stroke="#1d2b53" stroke-width="1.6"/></svg>
+  <svg class="plane" viewBox="0 0 64 44"><use href="#a-plane"/></svg>
+  <svg class="coin c1" viewBox="0 0 40 40"><use href="#a-coin"/></svg><svg class="coin c2" viewBox="0 0 40 40"><use href="#a-coin"/></svg><svg class="coin c3" viewBox="0 0 40 40"><use href="#a-coin"/></svg>
+  <svg class="mid" viewBox="0 0 1600 260" preserveAspectRatio="xMidYMax slice">
+    <path d="M-20 264V170Q120 60 300 150Q420 200 520 160Q700 70 900 150Q1040 200 1160 140Q1340 40 1620 170V264z" fill="#86d96c" stroke="#2c8a3a" stroke-width="4"/><path d="M-20 264V170Q120 60 300 150Q420 200 520 160Q700 70 900 150Q1040 200 1160 140Q1340 40 1620 170V264z" fill="url(#hillTex)"/>
+    <use href="#a-pine" x="70" y="34" width="52" height="86"/><use href="#a-pine" x="118" y="14" width="60" height="100"/><use href="#a-pine" x="176" y="50" width="44" height="74"/>
+    <use href="#a-tree" x="640" y="26" width="72" height="94"/><use href="#a-tree" x="716" y="48" width="54" height="70"/><use href="#a-pine" x="590" y="62" width="40" height="66"/>
+    <g transform="translate(1335 100)"><path d="M-46 0L0-62L46 0z" fill="#ff9a3c" stroke="#1d2b53" stroke-width="3.5" stroke-linejoin="round"/><path d="M0-62L-17 0h34z" fill="#ffd27a" stroke="#1d2b53" stroke-width="3" stroke-linejoin="round"/><path d="M0-40L-9 0h18z" fill="#3b2a5a"/><path d="M0-62v-24" stroke="#1d2b53" stroke-width="3" stroke-linecap="round"/><path d="M0-86l20 7l-20 7z" fill="#e8473d" stroke="#1d2b53" stroke-width="2.5" stroke-linejoin="round"/></g>
+    <g transform="translate(1418 106)"><path d="M-14 0l28-8M-14-8l28 8" stroke="#7a3d12" stroke-width="6" stroke-linecap="round"/><g class="flick"><path d="M0-4q-13-10-5-24q2 8 6 5q-2-13 5-19q9 12 7 25q-2 10-13 13z" fill="#ff7a1a" stroke="#1d2b53" stroke-width="2.5" stroke-linejoin="round"/><path d="M1-6q-6-6-2-13q3 3 4-3q5 6 3 11q-1 4-5 5z" fill="#ffd23f"/></g></g>
+    <use href="#a-pine" x="1236" y="42" width="48" height="80"/><use href="#a-pine" x="1500" y="60" width="52" height="86"/>
+    <path d="M-20 264V215Q160 120 380 200Q520 240 700 205Q860 170 1000 215Q1200 262 1340 190Q1480 130 1620 200V264z" fill="#4fc25a" stroke="#1f7a2c" stroke-width="4"/><path d="M-20 264V215Q160 120 380 200Q520 240 700 205Q860 170 1000 215Q1200 262 1340 190Q1480 130 1620 200V264z" fill="url(#hillTex)"/>
+    <g transform="translate(219 167)"><rect x="-5" y="-44" width="10" height="48" fill="#a8672e" stroke="#1d2b53" stroke-width="3"/><path d="M-36-42v-24a20 20 0 0 1 20-20h34a20 20 0 0 1 20 20v24z" fill="#e8473d" stroke="#1d2b53" stroke-width="3.5" stroke-linejoin="round"/><path d="M-36-42v-24a20 20 0 0 1 40 0v24z" fill="#ff7163" stroke="#1d2b53" stroke-width="3" stroke-linejoin="round"/><path d="M-6-82h22" stroke="#ffb0a8" stroke-width="4" stroke-linecap="round"/><ellipse cx="-23" cy="-62" rx="3" ry="4.5" fill="#1d2b53"/><ellipse cx="-9" cy="-62" rx="3" ry="4.5" fill="#1d2b53"/><path d="M-21-52q5 5 10 0" fill="none" stroke="#1d2b53" stroke-width="2.5" stroke-linecap="round"/><path d="M24-64v-36" stroke="#1d2b53" stroke-width="4" stroke-linecap="round"/><path d="M26-100h16v12h-16z" fill="#ffc91a" stroke="#1d2b53" stroke-width="3" stroke-linejoin="round"/></g>
+    <use href="#a-flower" x="130" y="134" width="26" height="40" style="color:#ff7eb6"/><use href="#a-flower" x="292" y="150" width="22" height="34" style="color:#fff"/><use href="#a-flower" x="330" y="160" width="26" height="40" style="color:#b79cff"/>
+    <g transform="translate(850 194)"><g fill="#35a548" stroke="#1f7a2c" stroke-width="6"><circle cx="-22" cy="-8" r="16"/><circle cx="0" cy="-18" r="20"/><circle cx="24" cy="-8" r="16"/></g><g fill="#35a548"><circle cx="-22" cy="-8" r="16"/><circle cx="0" cy="-18" r="20"/><circle cx="24" cy="-8" r="16"/><rect x="-36" y="-10" width="74" height="14"/></g><circle cx="-6" cy="-24" r="6" fill="#6fd47f" opacity=".8"/><circle cx="14" cy="-12" r="3" fill="#ff7eb6"/><circle cx="-18" cy="-8" r="3" fill="#ff7eb6"/></g>
+    <use href="#a-flower" x="760" y="168" width="24" height="36" style="color:#ffd23f"/><use href="#a-flower" x="930" y="170" width="24" height="36" style="color:#ff7eb6"/><use href="#a-flower" x="1090" y="196" width="22" height="34" style="color:#fff"/>
+    <g transform="translate(1470 164)"><rect x="-4" y="-40" width="8" height="44" fill="#a8672e" stroke="#1d2b53" stroke-width="3"/><path d="M-40-62h62l14 13l-14 13h-62z" fill="#f0c283" stroke="#1d2b53" stroke-width="3" stroke-linejoin="round"/><text x="-8" y="-43" text-anchor="middle" font-family="Lilita One, Arial Rounded MT Bold, sans-serif" font-size="16" fill="#1d2b53">ZERO</text></g>
+    <use href="#a-flower" x="1380" y="150" width="24" height="36" style="color:#b79cff"/><use href="#a-flower" x="1540" y="146" width="26" height="40" style="color:#ff7eb6"/>
+  </svg>
+  <svg class="ground"><rect width="100%" height="72" fill="url(#gp)"/></svg>
+  <svg class="snail" viewBox="0 0 76 52"><path d="M6 48q-5-12 7-12h36q8 0 9-12q0-9 7-9q7 0 5 9q-3 24-16 24z" fill="#ffd9a0" stroke="#1d2b53" stroke-width="3" stroke-linejoin="round"/><path d="M62 16l-4-10M68 16l4-9" stroke="#1d2b53" stroke-width="2.5" stroke-linecap="round"/><circle cx="58" cy="5" r="2.5" fill="#1d2b53"/><circle cx="72" cy="6" r="2.5" fill="#1d2b53"/><circle cx="30" cy="30" r="17" fill="#c493f5" stroke="#1d2b53" stroke-width="3"/><path d="M30 30m-9 0a9 9 0 1 1 9 9a5 5 0 1 1 2-9" fill="none" stroke="#7d4cc0" stroke-width="3" stroke-linecap="round"/><rect x="20" y="3" width="20" height="13" rx="2" fill="#fff" stroke="#1d2b53" stroke-width="2.2"/><path d="M20.5 4l9.5 7l9.5-7" fill="none" stroke="#1d2b53" stroke-width="2"/></svg>
+</div>
+<div class="wrap">
+  <header class="hud">
+    <div class="hudrow">
+      <div class="logo"><svg viewBox="0 0 120 120" aria-hidden="true"><use href="#a-zip"/></svg><span>Inbox Quest<small id="worldName">WORLD 1 · SORT</small></span></div>
+      <button class="iconbtn" id="soundBtn" type="button" aria-pressed="false" title="8-bit sounds">SND OFF</button>
+      <button class="iconbtn" id="gearBtn" type="button" title="Game rules and numbers">RULES</button>
+    </div>
+    <div class="stats" style="margin-top:8px">
+      <div class="stat cyan"><svg class="si" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-mail"/></svg><b id="sInbox">--</b><span>INBOX</span></div>
+      <div class="stat gold"><svg class="si" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-target"/></svg><b id="sToday">0/20</b><span>TODAY</span></div>
+      <div class="stat pink"><b id="sStreak"><i class="flame"></i>0</b><span>STREAK</span></div>
+      <div class="stat green"><svg class="si" viewBox="0 0 40 40" aria-hidden="true"><use href="#a-coin"/></svg><b id="sWallet">$0</b><span>WALLET</span></div>
+      <div class="stat"><svg class="si" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-star"/></svg><b id="sXp">0</b><span id="sLv">XP LV1</span></div>
+    </div>
+    <div class="goalbar" title="Daily goal"><i id="goalFill"></i><em id="goalTxt"></em></div>
+    <nav class="tabs" aria-label="Levels">
+      <a href="#sort" data-tab="sort">World 1: Sort <span class="n" id="nSort"></span></a>
+      <a href="#drafts" data-tab="drafts">World 2: Draft Room <span class="n" id="nDrafts"></span></a>
+      <a href="#waiting" data-tab="waiting" hidden>Waiting <span class="n" id="nWait"></span></a>
+      <a href="#unsub" data-tab="unsub">World 3: Unsub Run <span class="n" id="nUnsub"></span></a>
+      <a href="#shop" data-tab="shop">Shop</a>
+    </nav>
+    <div class="status" id="statusLine"><span>Loading your save file...</span></div>
+  </header>
+
+  <main>
+    <section id="v-sort">
+      <div class="stage" id="stage">
+        <div class="card"><div class="empty"><svg class="mascot" viewBox="0 0 120 120" aria-hidden="true"><use href="#a-zip"/></svg><h2>Here we go!</h2><p>Your cards load from your save file in a second. Each one is a real email, summed up, with the full original one tap away.</p></div></div>
+      </div>
+      <div class="pad" id="pad">
+        <button class="key left" type="button" data-b="noise"><i class="cap">&#8592;</i><span class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-box"/></svg>Archive</span><span class="l">Nothing needed</span></button>
+        <button class="key mid" type="button" data-b="skip"><span class="k">Skip</span></button>
+        <button class="key right" type="button" data-b="respond"><i class="cap">&#8594;</i><span class="k">Draft<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pen"/></svg></span><span class="l">Go to Draft Room</span></button>
+      </div>
+      <div class="combo" id="combo"></div>
+      <div class="row" style="justify-content:space-between">
+        <button class="btn" id="undoBtn" type="button" disabled>UNDO</button>
+        <span class="hint hintbox">&#8592; archive · &#8594; draft · S skip · Z undo</span>
+        <button class="btn" id="loadBtn" type="button">LOAD NEXT BATCH</button>
+      </div>
+      <p class="hint" id="loadNote"></p>
+    </section>
+
+    <section id="v-drafts" hidden>
+      <h2 class="sec">World 2: Draft Room</h2>
+      <p class="hint" id="draftIntro">Tap a card to open it: three replies in your voice, ready for Gmail Drafts. The check archives one you already handled. Emails you answered in Gmail clear on their own.</p>
+      <div id="draftList"></div>
+    </section>
+
+    <section id="v-waiting" hidden>
+      <h2 class="sec">WAITING ON THEM</h2>
+      <p class="hint">Everything you swiped UP. Same shape as the Waiting on box in Home Base, so the scans can watch for replies.</p>
+      <div id="waitList"></div>
+    </section>
+
+    <section id="v-unsub" hidden>
+      <h2 class="sec">World 3: Unsub Run</h2>
+      <div id="unsubBody"></div>
+    </section>
+
+    <section id="v-shop" hidden>
+      <h2 class="sec">Shop money</h2>
+      <div class="wallet" id="walletBig">$0</div>
+      <p class="hint" id="xpConvertNote"></p>
+      <div class="row"><button class="btn primary" id="convertBtn" type="button">CASH IN XP</button></div>
+      <h2 class="sec">Wishlist</h2>
+      <p class="hint">A reward ledger. No real purchases and no payment details here. Buy it yourself, then mark it bought to spend the coins.</p>
+      <form class="formrow" id="wishForm">
+        <input type="text" id="wishName" placeholder="Thing you want" aria-label="Item">
+        <input type="number" id="wishPrice" placeholder="$" min="1" aria-label="Price">
+        <button class="btn" type="submit">ADD</button>
+      </form>
+      <div id="wishList"></div>
+      <h2 class="sec">Ledger</h2>
+      <div class="ledger" id="ledger"></div>
+    </section>
+  </main>
+</div>
+
+<div id="drawerHost"></div>
+<div id="toastHost"></div>
+
+<script>
+(() => {
+"use strict";
+const TZ = "America/New_York";
+const DEF = {goal:20, reward:50, penalty:25, zeroBonus:150, xpPerSort:2, xpPerExtra:10, xpPerDraft:5, draftRoomBonus:25, xpUnit:100, dollarsPerUnit:5, weekends:true, batch:50};
+const BUCKETS = {respond:"DRAFT", wait:"ARCHIVE", noise:"ARCHIVE", else:"ARCHIVE"};
+const sugOf = b => b==="respond" ? "respond" : "noise";
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ymdET = (d=new Date()) => new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"}).format(d);
+const addDays = (ymd,n) => { const d=new Date(ymd+"T12:00:00Z"); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); };
+const dow = ymd => new Date(ymd+"T12:00:00Z").getUTCDay();
+const ago = iso => { if(!iso) return ""; const h=(Date.now()-new Date(iso))/36e5; if(h<1) return "NEW"; if(h<24) return Math.round(h)+"H OLD"; const d=Math.round(h/24); return d+"D OLD"; };
+const fmtDate = iso => iso ? new Date(iso).toLocaleString("en-US",{timeZone:TZ,month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}) : "";
+const money = n => (n<0?"-$":"$")+Math.abs(Math.round(n));
+const uid = () => Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+const parse = p => { if(typeof p==="string"){ try{ return JSON.parse(p); }catch(_){ return null; } } return p; };
+
+let db=null, mcp=null, sample=null;
+const S = {unsub:[], cards:[], drafts:[], waiting:[], ledger:[], days:{}, wish:[], queue:[], game:null, gameVer:0};
+let loaded = {cards:false, game:false};
+let queueOrder = []; let skipped = new Set(); let current = null;
+let primaryLeft = null; let lastAutoLoad = 0; let primaryWasZero = false;
+const tabOf = c => c.tab || ((c.kind==="noise") ? "other" : "primary");
+const primaryOnly = () => primaryLeft == null ? false : primaryLeft > 0;
+let lastAction = null; let busyLoad=false; let soundOn=false; let inboxCount=null;
+const pendingArchive = new Map();
+
+/* ---------- sound (off by default) ---------- */
+let ac=null;
+function beep(freqs, dur=0.07, type="square"){ if(!soundOn) return; try{ ac = ac || new (window.AudioContext||window.webkitAudioContext)(); let t=ac.currentTime; for(const f of freqs){ const o=ac.createOscillator(), g=ac.createGain(); o.type=type; o.frequency.value=f; g.gain.setValueAtTime(.06,t); g.gain.exponentialRampToValueAtTime(.001,t+dur); o.connect(g).connect(ac.destination); o.start(t); o.stop(t+dur); t+=dur*0.9; } }catch(_){} }
+const sfx = { sort:()=>beep([660,880]), coin:()=>beep([988,1319],.08), undo:()=>beep([440,330]), win:()=>beep([523,659,784,1047],.12), bad:()=>beep([220,165],.15,"sawtooth") };
+try{ soundOn = localStorage.getItem("iq.sound")==="1"; }catch(_){}
+function paintSound(){ const b=$("#soundBtn"); b.setAttribute("aria-pressed", soundOn?"true":"false"); b.textContent = soundOn?"SND ON":"SND OFF"; }
+$("#soundBtn").onclick = () => { soundOn=!soundOn; try{ localStorage.setItem("iq.sound", soundOn?"1":"0"); }catch(_){} paintSound(); sfx.coin(); };
+paintSound();
+
+/* ---------- game state ---------- */
+const cfg = () => Object.assign({}, DEF, (S.game&&S.game.settings)||{});
+const today = () => ymdET();
+const dayDoc = d => S.days[d] || {sorted:0, xp:0, hitPaid:false, closed:false};
+const wallet = () => S.ledger.reduce((a,l)=>a+(+l.amount||0),0);
+const mult = () => 1 + Math.min((S.game&&S.game.streak)||0, 10)*0.1;
+const level = xp => Math.floor((xp||0)/100)+1;
+
+async function saveGame(patch){
+  S.game = Object.assign({}, S.game||{}, patch);
+  if(db) try{ await db.doc("game/state").set(S.game); }catch(e){ console.warn("save game", e&&e.code); }
+  paintHud();
+}
+async function saveDay(d, patch){
+  S.days[d] = Object.assign({}, dayDoc(d), patch, {date:d});
+  if(db) try{ await db.doc("days/"+d).set(S.days[d]); }catch(e){ console.warn("save day", e&&e.code); }
+  paintHud();
+}
+async function addLedger(type, amount, note, day){
+  const row = {type, amount, note, day:day||today(), ts:new Date().toISOString()};
+  const id = "l-"+uid(); S.ledger.unshift(Object.assign({_id:id}, row));
+  if(db) try{ await db.doc("ledger/"+id).set(row); }catch(e){ console.warn("ledger", e&&e.code); }
+  paintHud(); return id;
+}
+async function removeLedger(id){ S.ledger = S.ledger.filter(l=>l._id!==id); if(db) try{ await db.doc("ledger/"+id).delete(); }catch(_){} paintHud(); }
+async function addXp(n){ const g=S.game||{}; await saveGame({xp:(g.xp||0)+n, lifetimeXp:(g.lifetimeXp||0)+Math.max(0,n)}); }
+
+/* Day close: runs on load. Every past game day since you started gets settled once. */
+async function closePastDays(){
+  const c=cfg(), t=today(); const g=S.game;
+  if(!g.startDay){ await saveGame({startDay:t, lastClosed:addDays(t,-1), streak:0}); return; }
+  let d = addDays(g.lastClosed||addDays(t,-1), 1); let streak=g.streak||0; const msgs=[];
+  let guard=0;
+  while(d < t && guard++ < 60){
+    if(c.weekends || (dow(d)!==0 && dow(d)!==6)){
+      const dd = dayDoc(d);
+      if(!dd.closed){
+        if((dd.sorted||0) >= c.goal){ streak++; }
+        else { await addLedger("miss", -c.penalty, `Missed ${c.goal} on ${d} (sorted ${dd.sorted||0})`, d); streak=0; msgs.push(`${d}: sorted ${dd.sorted||0}/${c.goal}. Lost ${money(c.penalty)}.`); }
+        await saveDay(d, {closed:true, result:(dd.sorted||0)>=c.goal?"hit":"miss"});
+      }
+    }
+    d = addDays(d,1);
+  }
+  await saveGame({lastClosed:addDays(t,-1), streak});
+  if(msgs.length){ sfx.bad(); toast("Day closed. "+msgs.slice(-2).join(" ")); }
+}
+
+/* ---------- HUD ---------- */
+function paintHud(){
+  const c=cfg(), dd=dayDoc(today()), g=S.game||{};
+  $("#sInbox").textContent = inboxCount==null ? "--" : (inboxCount>=200?"200+":String(inboxCount));
+  $("#sToday").textContent = `${dd.sorted||0}/${c.goal}`;
+  $("#sStreak").innerHTML = `<i class="flame"></i>${g.streak||0}`;
+  $("#sWallet").textContent = money(wallet());
+  $("#sXp").textContent = g.xp||0;
+  const lx = g.lifetimeXp||0; $("#sLv").textContent = "XP LV"+level(lx);
+  const pct = Math.min(100, Math.round(((dd.sorted||0)/c.goal)*100));
+  $("#goalFill").style.width = pct+"%";
+  $("#goalTxt").textContent = (dd.sorted||0)>=c.goal ? `GOAL HIT +${money(c.reward)}` : `${c.goal-(dd.sorted||0)} TO ${money(c.reward)}`;
+  const openDrafts = S.drafts.filter(d=>d.status!=="done" && !(d.snoozeUntil && Date.parse(d.snoozeUntil)>Date.now())).length;
+  $("#nDrafts").textContent = openDrafts? openDrafts : "";
+  const ow = S.waiting.filter(w=>w.status!=="closed").length; $("#nWait").textContent = ow||"";
+  $("#nSort").textContent = openCards().length || "";
+  $("#walletBig").textContent = money(wallet());
+  $("#xpConvertNote").textContent = `${g.xp||0} XP on hand. ${c.xpUnit} XP = ${money(c.dollarsPerUnit)}. Streak multiplier x${mult().toFixed(1)} on XP.`;
+}
+function statusLine(){
+  // Only speak up when something needs you.
+  const parts = [];
+  if(!db) parts.push(`<span class="warn">Open this on claude.ai to save your progress</span>`);
+  else if(!mcp) parts.push(`<span class="warn">Allow Gmail for this page so archiving works</span>`);
+  if(db && !sample) parts.push(`<span class="warn">Allow Claude for this page so drafts get written</span>`);
+  const el=$("#statusLine"); el.innerHTML = parts.join(""); el.hidden = !parts.length;
+}
+/* ---------- toast + pops ---------- */
+let toastTimer=null;
+function toast(text, actionLabel, onAction){
+  const host=$("#toastHost"); clearTimeout(toastTimer);
+  host.innerHTML = `<div class="toast" role="status"><span>${esc(text)}</span>${actionLabel?`<button type="button" id="toastAct">${esc(actionLabel)}</button>`:""}</div>`;
+  if(actionLabel) $("#toastAct").onclick = () => { host.innerHTML=""; onAction(); };
+  toastTimer = setTimeout(()=>{ host.innerHTML=""; }, 5200);
+}
+function pop(text, color){ const el=document.createElement("div"); el.className="pop"; el.textContent=text; if(color) el.style.color=color; const r=$("#stage").getBoundingClientRect(); el.style.left=(r.left+r.width/2-30)+"px"; el.style.top=(r.top+40)+"px"; document.body.appendChild(el); setTimeout(()=>el.remove(),1100); }
+function celebrate(title, sub){ const d=document.createElement("div"); d.className="celebrate"; const cols=["#ffc91a","#e8473d","#2fb84a","#2f8fe0","#b79cff","#fff"]; d.innerHTML=Array.from({length:36},(_,i)=>`<i class="cf" style="left:${(i*37)%100}%;background:${cols[i%6]};animation-duration:${2.4+(i%7)*.45}s;animation-delay:${-(i%9)*.4}s"></i>`).join("")+`<div style="position:relative"><svg class="cz" viewBox="0 0 120 120" aria-hidden="true"><use href="#a-zip"/></svg><h1>${esc(title)}</h1><p>${esc(sub)}</p><button class="btn primary" type="button">CONTINUE</button></div>`; document.body.appendChild(d); d.querySelector("button").onclick=()=>d.remove(); d.querySelector("button").focus(); sfx.win(); }
+
+/* ---------- Gmail (only: search, read, create_draft, archive) ---------- */
+const withTimeout = (p, ms) => new Promise((res,rej)=>{ const t=setTimeout(()=>rej({code:"timeout"}), ms); Promise.resolve(p).then(v=>{ clearTimeout(t); res(v); }, e=>{ clearTimeout(t); rej(e); }); });
+async function pool(jobs, n){ let i=0; await Promise.all(Array.from({length:Math.min(n,jobs.length)}, async()=>{ while(i<jobs.length){ const j=jobs[i++]; try{ await j(); }catch(e){ console.warn("job", e&&e.code); } } })); }
+async function gmail(tool, input){ if(!mcp) throw {code:"no_mcp"}; const r = await withTimeout(mcp.callTool("Gmail", tool, input), 30000); return parse(r && r.payload); }
+async function archiveNow(threadId){ await gmail("unlabel_thread", {threadId, labelIds:["INBOX"]}); }
+function scheduleArchive(threadId){
+  // 5 second grace so UNDO can cancel before Gmail changes anything.
+  if(pendingArchive.has(threadId)) return;
+  const t = setTimeout(()=>applyArchive(threadId), 5000);
+  pendingArchive.set(threadId, t);
+}
+async function applyArchive(threadId){
+  pendingArchive.delete(threadId);
+  if(mcp){ try{ await archiveNow(threadId); bumpInbox(-1); return; }catch(e){ console.warn("archive failed", e&&e.code); } }
+  const id="q-"+threadId; const row={op:"archive", threadId, status:"queued", createdAt:new Date().toISOString()};
+  S.queue = S.queue.filter(x=>x._id!==id).concat([Object.assign({_id:id},row)]);
+  if(db) try{ await db.doc("queue/"+id).set(row); }catch(_){}
+  statusLine();
+}
+function flushArchives(){ for(const [tid,t] of pendingArchive){ clearTimeout(t); applyArchive(tid); } }
+window.addEventListener("pagehide", flushArchives);
+async function drainQueue(){
+  if(!mcp) return; const q = S.queue.filter(x=>x.status==="queued").slice(0,40);
+  for(const x of q){ try{ if(x.op==="archive") await archiveNow(x.threadId); x.status="applied"; if(db) await db.doc("queue/"+x._id).update({status:"applied", appliedAt:new Date().toISOString()}); }catch(e){ console.warn("queue item", e&&e.code); } }
+  statusLine();
+}
+let inboxTimer=null;
+function bumpInbox(n){ if(inboxCount!=null) inboxCount=Math.max(0,inboxCount+n); paintHud(); clearTimeout(inboxTimer); inboxTimer=setTimeout(refreshInbox, 12000); }
+async function refreshInbox(){
+  if(!mcp) return;
+  try{
+    // Primary left = Primary inbox threads you haven't sorted yet (Draft Room ones count as sorted).
+    const done = new Set(S.cards.filter(c=>c.status!=="open").map(c=>c._id));
+    let ids=[], tok=undefined, more=false;
+    for(let i=0;i<4;i++){ const q = await gmail("search_threads", Object.assign({query:"in:inbox category:primary", pageSize:50, view:"THREAD_VIEW_IDS_ONLY"}, tok?{pageToken:tok}:{})); ids = ids.concat(((q&&q.threads)||[]).map(t=>t.id)); tok = q && q.nextPageToken; if(!tok) break; more = i===3; }
+    const prev = primaryLeft;
+    primaryLeft = ids.filter(id=>!done.has(id)).length + (more?50:0);
+    inboxCount = ids.length + (more?50:0); paintHud();
+    if(inboxCount===0 && S.game && !S.game.zeroPaid){ const c=cfg(); await addLedger("zero", c.zeroBonus, "Inbox Zero bonus"); await saveGame({zeroPaid:new Date().toISOString()}); celebrate("Inbox Zero!", `+${money(c.zeroBonus)} in the wallet. Your Primary inbox is empty.`); }
+    if(prev && prev>0 && primaryLeft===0){ celebrate("Primary at zero!", "Your main inbox is clear. Nice. Newsletters stay where they are."); }
+    if(prev!==primaryLeft && !$("#card")) renderCard(); else if(prev!==primaryLeft && current && current.kind==="sweep") renderCard();
+  }catch(e){ console.warn("inbox count", e&&e.code); }
+}
+
+/* ---------- cards ---------- */
+function openCards(){ return S.cards.filter(c=>c.status==="open" && (c.kind==="email"||!c.kind)); }
+function sweeps(tab){
+  const pick = k => S.cards.filter(c=>c.status==="open" && c.kind===k && tabOf(c)===tab);
+  const noise = pick("noise"), handled = pick("handled"); const out=[];
+  if(handled.length) out.push({_id:"sweep-handled-"+tab, kind:"sweep", which:"handled", items:handled});
+  return out;
+}
+function buildQueue(){
+  // Primary first. Updates, promotions and newsletters only once Primary is at zero.
+  const sortE = l => l.slice().sort((a,b)=>((a.order??999)-(b.order??999)) || String(b.lastDate||"").localeCompare(String(a.lastDate||"")));
+  const emails = openCards(); const prim = sortE(emails.filter(c=>tabOf(c)==="primary")), other = sortE(emails.filter(c=>tabOf(c)!=="primary"));
+  const later=[];
+  const lay = (list, sw) => { const fresh=list.filter(c=>!skipped.has(c._id)); list.filter(c=>skipped.has(c._id)).forEach(c=>later.push(c)); const q=fresh.slice(); sw.forEach((x,i)=>{ if(skipped.has(x._id)){ later.push(x); return; } q.splice(i===0?Math.min(1,q.length):Math.min(4,q.length),0,x); }); return q; };
+  let q = lay(prim, sweeps("primary"));
+  if(!primaryOnly()) q = q.concat(lay(other, sweeps("other")));
+  queueOrder = q.concat(later.filter(x=>!primaryOnly() || tabOf(x.items?x.items[0]:x)==="primary"));
+}
+const ZIP = `<svg class="mascot" viewBox="0 0 120 120" aria-hidden="true"><use href="#a-zip"/></svg>`;
+let loadMsg = {t:"Loading...", s:"", p:10};
+function paintLoading(){ if($("#card")) return; $("#stage").innerHTML = `<div class="card"><div class="empty">${ZIP.replace('class="mascot"','class="mascot run"')}<h2>${esc(loadMsg.t)}</h2><p>${esc(loadMsg.s)}</p><div class="lbar"><i style="width:${loadMsg.p}%"></i></div></div></div>`; }
+function loadStep(t, s, p){ loadMsg = {t, s, p}; paintLoading(); }
+function renderCard(){
+  buildQueue();
+  const stage=$("#stage"); const c = queueOrder[0]; current = c || null;
+  document.querySelectorAll(".key").forEach(k=>{ k.classList.remove("suggest"); k.disabled = !c; });
+  if(!loaded.cards){ return; }
+  if(!c){
+    if(busyLoad){ paintLoading(); paintHud(); return; }
+    if(primaryOnly() && mcp && sample && Date.now()-lastAutoLoad > 60000){ lastAutoLoad = Date.now(); loadStep("More Primary mail!", primaryLeft+" still in your Primary inbox. Fetching them now.", 6); setTimeout(loadBatch, 60); paintHud(); return; }
+    const zero = primaryLeft===0;
+    const msg = mcp && sample ? (zero ? "Your Primary inbox is clear. New mail shows up here on its own." : "Load the next batch to keep going. Each batch reads up to "+cfg().batch+" inbox threads.") : "The next batch needs Gmail and Claude allowed for this page. A scan can also load it.";
+    stage.innerHTML = `<div class="card"><div class="empty">${ZIP}<h2>${zero?"Primary at zero!":"Course clear!"}</h2><p>${esc(msg)}</p></div></div>`;
+    paintHud(); return;
+  }
+  if(c.kind==="sweep"){
+    const handled = c.which==="handled";
+    stage.innerHTML = `<article class="card sweep" id="card">
+      <div class="pills"><span class="pill noise">${handled?"TEAM HAS IT":"CLEAN SWEEP"}</span><span class="pill age">${c.items.length} THREADS</span></div>
+      <div class="from">${handled?"Your team already answered these":"Newsletters, receipts and app alerts"}</div>
+      <div class="summary">${handled?"The last reply on each is from you or someone at {{COMPANY}}, so nothing is waiting on you. Untick anything you want to keep, then archive the rest.":"None of these ask you for anything. Untick anything you want to keep, then archive the rest in one go."}</div>
+      <ul>${c.items.map(it=>`<li><label><input type="checkbox" data-sw="${esc(it._id)}" checked><span><b>${esc(it.fromName||it.from||"")}</b> <span class="s">${esc(it.subject||"")}${it.handledBy?" · "+esc(it.handledBy)+" replied":""}</span></span></label></li>`).join("")}</ul>
+    </article>`;
+    document.querySelector(".key.left").classList.add("suggest");
+    bindSwipe(); paintHud(); return;
+  }
+  const others = (c.others||[]).filter(Boolean);
+  const reading = c.summed===false && !c.sumTried && !!sample;
+  const sug = sugOf(c.bucket || "respond");
+  stage.innerHTML = `<article class="card" id="card">
+    <button class="flagbtn" type="button" id="flagBtn" title="Urgent: send to the top of the Draft Room" aria-label="Flag urgent and send to the top of the Draft Room">${FLAG_SVG}</button>
+    <div class="pills">${reading?`<span class="pill wait">READING IT...</span>`:`<span class="pill ${sug}">SUGGEST: ${BUCKETS[sug]||sug}</span>`}<span class="pill age">${esc(ago(c.since||c.lastDate))}</span>${c.deal?`<span class="pill deal">${esc(c.deal)}</span>`:""}${c.nda?`<span class="pill nda">NDA: KEEP PRIVATE</span>`:""}${c.msgCount>1?`<span class="pill age">${c.msgCount} MSGS</span>`:""}</div>
+    <div class="from">${esc(c.fromName||c.from)} ${c.role?`<span class="role">· ${esc(c.role)}</span>`:""}</div>
+    <div class="subject">${esc(c.subject||"(no subject)")}</div>
+    ${others.length?`<div class="others">Also on it: ${esc(others.join(", "))}</div>`:""}
+    <div class="summary">${esc(c.summary||c.snippet||"")}</div>
+    ${c.needs?`<div class="needs"><b>NEEDS FROM YOU</b>${esc(c.needs)}</div>`:""}
+    ${c.why?`<div class="why">Why ${esc((BUCKETS[sug]||"").toLowerCase())}: ${esc(c.why)}</div>`:""}
+    <details class="orig" id="orig"><summary>&#9660; See full email</summary><div id="origBody"><p class="hint">Loading the thread...</p></div></details>
+    <div class="row"><a class="btn" href="${esc(c.url||"#")}" target="_blank" rel="noopener">OPEN IN GMAIL</a></div>
+  </article>`;
+  const k = document.querySelector(`.key[data-b="${sug}"]`); if(k && !reading) k.classList.add("suggest");
+  $("#orig").addEventListener("toggle", e=>{ if(e.target.open) loadOriginal(c); });
+  $("#flagBtn").onclick=(e)=>{ e.stopPropagation(); c.flagged=true; toast("Flagged. It's at the top of the Draft Room."); sort("respond"); };
+  bindSwipe(); paintHud();
+  closeLoop(c);
+}
+function loadOriginal(c){ renderThread(c._id, $("#origBody"), c.snippet||c.summary, ()=>current&&current._id===c._id); }
+/* Close the loop: if you or a teammate replied since this card was made, clear it. */
+async function closeLoop(c){
+  if(!mcp || c.loopChecked && Date.now()-c.loopChecked<30*60e3) return;
+  try{
+    const p = await gmail("get_thread", {threadId:c._id, messageFormat:"METADATA_ONLY"});
+    const msgs=(p&&p.messages)||[]; const last=msgs[msgs.length-1]; c.loopChecked=Date.now(); if(!last) return;
+    const from=String(last.sender||"").toLowerCase(); const when=new Date(last.date||0);
+    const inInbox = msgs.some(m=>(m.labelIds||[]).includes("INBOX"));
+    if(!inInbox){ await setCard(c._id, {status:"cleared", clearedWhy:"Already archived in Gmail"}); if(current&&current._id===c._id){ toast("That one was already archived in Gmail. Skipped it."); renderCard(); } return; }
+    if(/@yourcompany\.com$/.test(from) && when > new Date(c.lastDate||0)){
+      const who = from.startsWith("{{OWNER_EMAIL_LOCAL}}@") ? "You" : from.split("@")[0].replace(/^./,x=>x.toUpperCase());
+      await setCard(c._id, {status:"cleared", clearedWhy:`${who} replied ${fmtDate(last.date)}`});
+      if(current && current._id===c._id){ toast(`${who} already replied on "${c.subject}". Cleared it for you.`); renderCard(); }
+    }
+  }catch(e){ console.warn("loop check", e&&e.code); }
+}
+async function setCard(id, patch){
+  const c = S.cards.find(x=>x._id===id); if(c) Object.assign(c, patch);
+  if(db) try{ await db.doc("cards/"+id).update(patch); }catch(e){ console.warn("card update", e&&e.code); }
+}
+
+const FLAG_SVG = `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 22V3" stroke="#1d2b53" stroke-width="2.5" stroke-linecap="round"/><path d="M6 4h12l-3 4.5 3 4.5H6z" fill="#e63946" stroke="#1d2b53" stroke-width="2" stroke-linejoin="round"/></svg>`;
+/* ---------- sorting ---------- */
+async function sort(bucket){
+  const c = current; if(!c) return;
+  if(bucket==="skip"){ skipped.add(c._id); fly("mid"); setTimeout(renderCard,160); return; }
+  flushArchives();
+  const conf=cfg(), d=today(), dd=dayDoc(d);
+  const act = {card:c, bucket, prevDay:Object.assign({},dd), xp:0, ledgerId:null, waitingId:null, draftId:null, archived:[]};
+  let units = 1;
+  if(c.kind==="sweep"){
+    const keep = new Set([...document.querySelectorAll("[data-sw]")].filter(x=>!x.checked).map(x=>x.dataset.sw));
+    const go = c.items.filter(it=>!keep.has(it._id));
+    for(const it of go){ await setCard(it._id, {status:"sorted", choice:c.which==="handled"?"else":"noise", sortedAt:new Date().toISOString()}); scheduleArchive(it._id); act.archived.push(it._id); }
+    for(const it of c.items.filter(it=>keep.has(it._id))){ await setCard(it._id, {kind:"email", bucket:"respond", summary:it.summary||it.snippet||""}); }
+    act.sweepIds = go.map(x=>x._id);
+    units = 1;
+  } else {
+    await setCard(c._id, {status:"sorted", choice:bucket, sortedAt:new Date().toISOString()});
+    if(bucket==="noise" || bucket==="else" || bucket==="wait"){ scheduleArchive(c._id); act.archived.push(c._id); }
+    if(bucket==="wait"){ act.waitingId = await addWaiting(c); }
+    if(bucket==="respond"){ act.draftId = await requestDraft(c); }
+  }
+  const newSorted = (dd.sorted||0)+units;
+  let xp = Math.round(conf.xpPerSort*mult()) + (c.kind==="sweep" ? Math.min(20, act.archived.length) : 0);
+  if(newSorted > conf.goal){ xp += Math.round(conf.xpPerExtra*mult()); }
+  act.xp = xp; await addXp(xp);
+  await saveDay(d, {sorted:newSorted, xp:(dd.xp||0)+xp});
+  if(newSorted >= conf.goal && !dd.hitPaid){
+    act.ledgerId = await addLedger("goal", conf.reward, `Hit ${conf.goal} sorted on ${d}`); await saveDay(d, {hitPaid:true});
+    setTimeout(()=>celebrate("Goal!", `${conf.goal} emails sorted. +${money(conf.reward)} shop money. Every one past this is +${conf.xpPerExtra} XP.`), 250);
+  }
+  if(newSorted > conf.goal){ $("#combo").textContent = `COMBO x${newSorted-conf.goal}  +${xp} XP`; sfx.coin(); } else { $("#combo").textContent=""; sfx.sort(); }
+  pop("+"+xp+" XP");
+  lastAction = act; $("#undoBtn").disabled=false;
+  fly(bucket==="respond"?"right":"left");
+  const label = c.kind==="sweep" ? `Archiving ${act.archived.length} threads.` : bucket==="respond" ? "Sent to the Draft Room." : "Archived.";
+  toast(label + (mcp?"":" Gmail isn't connected, so it's queued."), "UNDO", undo);
+  setTimeout(renderCard, 170);
+}
+function fly(dir){ const el=$("#card"); if(!el) return; if(dir==="mid"){ el.style.opacity=".2"; return; } el.classList.add("fly-"+dir); }
+async function undo(){
+  const a = lastAction; if(!a) return; lastAction=null; $("#undoBtn").disabled=true;
+  let applied = 0;
+  for(const tid of a.archived){ if(pendingArchive.has(tid)){ clearTimeout(pendingArchive.get(tid)); pendingArchive.delete(tid); } else applied++; }
+  const ids = a.card.kind==="sweep" ? a.sweepIds : [a.card._id];
+  for(const id of ids) await setCard(id, {status:"open", choice:null});
+  if(a.waitingId){ S.waiting=S.waiting.filter(w=>w._id!==a.waitingId); if(db) try{ await db.doc("waiting/"+a.waitingId).delete(); }catch(_){} }
+  if(a.draftId){ S.drafts=S.drafts.filter(w=>w._id!==a.draftId); if(db) try{ await db.doc("drafts/"+a.draftId).delete(); }catch(_){} }
+  if(a.ledgerId) await removeLedger(a.ledgerId);
+  await addXp(-a.xp);
+  await saveDay(today(), {sorted:a.prevDay.sorted||0, xp:a.prevDay.xp||0, hitPaid:!!a.prevDay.hitPaid});
+  skipped.delete(a.card._id);
+  sfx.undo(); $("#combo").textContent="";
+  toast(applied ? "Undone here. Gmail had already archived it, so find it in All Mail." : "Undone. Nothing changed in Gmail.");
+  renderCard(); paintDrafts(); paintWaiting();
+}
+$("#undoBtn").onclick = undo;
+document.querySelectorAll(".key").forEach(k=>k.addEventListener("click", ()=>sort(k.dataset.b)));
+document.addEventListener("keydown", e=>{
+  if(currentTab()!=="sort" || /INPUT|TEXTAREA|SELECT/.test((e.target||{}).tagName||"") || e.metaKey||e.ctrlKey||e.altKey) return;
+  const map={ArrowLeft:"noise",ArrowRight:"respond",s:"skip",S:"skip"};
+  if(map[e.key]){ e.preventDefault(); if(current) sort(map[e.key]); }
+  else if(e.key==="z"||e.key==="Z"||e.key==="u"){ e.preventDefault(); undo(); }
+  else if(e.key==="e"||e.key==="E"){ const o=$("#orig"); if(o){ o.open=!o.open; } }
+});
+function bindSwipe(){
+  const el=$("#card"); if(!el) return; let x0=null,y0=null,dx=0,dy=0;
+  el.addEventListener("pointerdown", e=>{ if(e.target.closest("details,a,button,input,label,pre")) return; x0=e.clientX; y0=e.clientY; dx=dy=0; el.setPointerCapture(e.pointerId); });
+  el.addEventListener("pointermove", e=>{ if(x0==null) return; dx=e.clientX-x0; dy=e.clientY-y0; el.style.transform=`translateX(${dx}px) rotate(${dx/40}deg)`; });
+  const end=()=>{ if(x0==null) return; el.style.transform=""; const ax=Math.abs(dx), ay=Math.abs(dy); x0=null;
+    if(ax>90 && ax>ay) sort(dx<0?"noise":"respond"); };
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", ()=>{ x0=null; el.style.transform=""; });
+}
+
+/* ---------- waiting ---------- */
+async function addWaiting(c){
+  const id = "w-"+c._id;
+  const row = {who:c.fromName||c.from||"", org:c.org||"", email:c.replyTo||c.from||"", what:[c.needsThem||c.subject||""], since:new Date().toISOString(), threadId:c._id, url:c.url||"", lastMessageId:c.lastMessageId||"", status:"open", by:"inbox-quest"};
+  S.waiting = S.waiting.filter(w=>w._id!==id).concat([Object.assign({_id:id},row)]);
+  if(db) try{ await db.doc("waiting/"+id).set(row); }catch(e){ console.warn("waiting", e&&e.code); }
+  paintWaiting(); return id;
+}
+function paintWaiting(){
+  const list = S.waiting.filter(w=>w.status!=="closed").sort((a,b)=>String(a.since).localeCompare(String(b.since)));
+  $("#waitList").innerHTML = list.length ? list.map(w=>`<div class="item"><div class="top"><span class="st ready">SINCE ${esc(fmtDate(w.since).toUpperCase())}</span><button class="btn" type="button" data-close="${esc(w._id)}">GOT IT, CLOSE</button></div><h3>${esc(w.who)}${w.org?` · ${esc(w.org)}`:""}</h3><div class="ctx">${esc((w.what||[]).join("; "))}</div>${w.url?`<div class="row"><a href="${esc(w.url)}" target="_blank" rel="noopener">Open thread</a></div>`:""}</div>`).join("") : `<div class="item"><div class="ctx">Nothing here yet. Swipe a card UP when the ball is in their court.</div></div>`;
+  document.querySelectorAll("[data-close]").forEach(b=>b.onclick=async()=>{ const id=b.dataset.close; const w=S.waiting.find(x=>x._id===id); if(w) w.status="closed"; if(db) try{ await db.doc("waiting/"+id).update({status:"closed", closedAt:new Date().toISOString()}); }catch(_){} paintWaiting(); paintHud(); });
+}
+
+/* ---------- Draft Room ---------- */
+const VOICE = `You write email replies as {{OWNER_FULL_NAME}}, {{OWNER_ROLE}} of {{COMPANY}} ({{CITY}}, {{TIMEZONE_NAME}} time). Write exactly like them. Voice profile (paste the profile built during onboarding from their last 500 or 1,000 sent emails):
+{{VOICE_PROFILE}}
+Defaults until the profile is pasted: short, plain, casual. A greeting line, one to three short sentences, a closing that fits the person, then "{{OWNER_NAME}}" alone on the last line. No formal wind-up. No dashes used as punctuation. Do not promise attachments. Never state something untrue (for example a fake "legal reviewed"). Before finishing, ask: would {{OWNER_NAME}} say this out loud to them? If it sounds like a template, rewrite it.`;
+async function freeSlots(){
+  // Free 30 minute slots on {{OWNER_NAME}}'s calendar, next 5 weekdays, 9:30am to 6pm ET.
+  if(!mcp) return "";
+  try{
+    const start = addDays(today(),1), end = addDays(today(),8);
+    const r = await mcp.callTool("Google Calendar","list_events",{startTime:start+"T00:00:00", endTime:end+"T23:59:00", timeZone:TZ, orderBy:"startTime", pageSize:150});
+    const p = parse(r&&r.payload)||{}; const ev=(p.events||[]).filter(e=>e.status!=="cancelled" && e.transparency!=="transparent" && e.start && e.start.dateTime);
+    const busy = ev.map(e=>[new Date(e.start.dateTime).getTime(), new Date(e.end.dateTime).getTime()]);
+    const out=[]; let d=start, n=0;
+    while(n<5 && d<=end){
+      if(dow(d)!==0 && dow(d)!==6){
+        n++; const free=[];
+        for(let m=9*60+30; m<18*60; m+=30){
+          const hh=String(Math.floor(m/60)).padStart(2,"0"), mm=String(m%60).padStart(2,"0");
+          const t0 = etToMs(d, hh+":"+mm), t1=t0+30*60e3;
+          if(t0 < Date.now()+2*36e5) continue;
+          if(!busy.some(([a,b])=>a<t1+10*60e3 && b>t0-10*60e3)) free.push(hh+":"+mm);
+        }
+        out.push(`${new Date(d+"T12:00:00Z").toLocaleDateString("en-US",{weekday:"short",month:"numeric",day:"numeric",timeZone:"UTC"})}: ${compact(free)||"no free time"}`);
+      }
+      d=addDays(d,1);
+    }
+    return out.join("\n");
+  }catch(e){ console.warn("calendar", e&&e.code); return ""; }
+}
+function etToMs(ymd, hm){ const noon=new Date(`${ymd}T12:00:00Z`); const part=new Intl.DateTimeFormat("en-US",{timeZone:TZ,timeZoneName:"shortOffset"}).formatToParts(noon).find(x=>x.type==="timeZoneName"); const m=/GMT([+-]\d+)(?::(\d+))?/.exec(part&&part.value||""); const offMin = m ? (+m[1])*60 + (m[2]?Math.sign(+m[1])*(+m[2]):0) : -300; return new Date(`${ymd}T${hm}:00Z`).getTime() - offMin*60e3; }
+function compact(list){ if(!list.length) return ""; const toM=s=>+s.slice(0,2)*60+ +s.slice(3); const f=m=>{ const h=Math.floor(m/60), mi=m%60; return `${h>12?h-12:h}${mi?":"+String(mi).padStart(2,"0"):""}${h>=12?"pm":"am"}`; }; const ranges=[]; let a=toM(list[0]), b=a+30; for(const s of list.slice(1)){ const m=toM(s); if(m===b) b+=30; else { ranges.push([a,b]); a=m; b=m+30; } } ranges.push([a,b]); return ranges.map(([x,y])=>`${f(x)} to ${f(y)} ET`).join(", "); }
+function stripQuote(t){ t=String(t||""); const cut=[/\nOn [^\n]{5,120}wrote:\s*\n/, /\n-{2,}\s*Original Message/i, /\nFrom: [^\n]+\nSent: /, /\n>[^\n]*\n>/]; let i=t.length; for(const rx of cut){ const m=t.search(rx); if(m>0 && m<i) i=m; } return t.slice(0,i).trim(); }
+async function renderThread(threadId, box, fallback, isCurrent){
+  if(!box) return;
+  if(!mcp){ box.innerHTML = `<p class="hint">Gmail isn't connected for this page, so here's the preview. Open it in Gmail for the rest.</p><div class="msg"><pre>${esc(fallback||"")}</pre></div>`; return; }
+  try{
+    const p = await gmail("get_thread", {threadId, messageFormat:"PLAIN_TEXT"});
+    const msgs = (p&&p.messages)||[]; if(isCurrent && !isCurrent()) return;
+    let li = msgs.length-1; for(let i=msgs.length-1;i>=0;i--){ if(!/^{{OWNER_EMAIL_LOCAL}}@yourcompany\.com$/i.test(msgs[i].sender||"")){ li=i; break; } }
+    const last = msgs[li]; const rest = msgs.filter((_,i)=>i!==li).reverse();
+    const one = (m, full) => `<div class="msg"><div class="mh"><span>${esc(m.sender||"")}</span><span>${esc(fmtDate(m.date))}</span></div>${(m.ccRecipients&&m.ccRecipients.length)?`<div class="mh"><span>cc ${esc(m.ccRecipients.join(", "))}</span></div>`:""}<pre>${esc((full?stripQuote(m.plaintextBody||m.snippet):String(m.plaintextBody||m.snippet||"")).slice(0,6000))}</pre>${(m.attachments&&m.attachments.length)?`<div class="mh"><span>Attachments: ${esc(m.attachments.map(a=>a.filename).join(", "))}</span></div>`:""}</div>`;
+    box.innerHTML = last ? one(last,true) + (rest.length?`<details class="orig"><summary>&#9660; Earlier messages (${rest.length})</summary>${rest.map(m=>one(m,true)).join("")}</details>`:"") : `<p class="hint">Thread came back empty.</p>`;
+  }catch(e){ box.innerHTML = `<p class="hint">Couldn't read the thread (${esc(e.code||"error")}). Open it in Gmail instead.</p>`; }
+}
+async function requestDraft(c){
+  const id = "d-"+c._id;
+  const row = {threadId:c._id, subject:c.subject||"", fromName:c.fromName||"", role:c.role||"", summary:c.summary||"", needs:c.needs||"", deal:c.deal||"", nda:!!c.nda, url:c.url||"", replyTo:c.replyTo||c.from||"", cc:c.cc||[], noDraft:!!c.noDraft, status:c.noDraft?"ready":"requested", body:"", options:[], pick:0, snippet:c.snippet||"", createdAt:new Date().toISOString(), by:"inbox-quest"};
+  if(c.flagged){ row.flagged=true; row.flaggedAt=new Date().toISOString(); }
+  S.drafts = S.drafts.filter(d=>d._id!==id).concat([Object.assign({_id:id},row)]);
+  if(db) try{ await db.doc("drafts/"+id).set(row); }catch(e){ console.warn("draft", e&&e.code); }
+  paintDrafts(); return id;
+}
+let writing=false;
+const urgOf = d => d.flagged ? 0 : (d.urg===1||d.urg===2||d.urg===3) ? d.urg : 2.5;
+const byUrg = (a,b) => (urgOf(a)-urgOf(b)) || (a.flagged&&b.flagged ? String(b.flaggedAt||"").localeCompare(String(a.flaggedAt||"")) : 0) || String(a.since||a.createdAt).localeCompare(String(b.since||b.createdAt));
+let ranking=false, rankTry=0;
+async function rankDrafts(){
+  // Ranks any open draft that has no urgency yet. One Claude call for the whole set.
+  if(ranking || !sample || Date.now()-rankTry < 60000) return;
+  const todo = S.drafts.filter(d=>d.status!=="done" && !d.urg); if(!todo.length) return;
+  ranking=true; rankTry=Date.now();
+  try{
+    const list = todo.slice(0,30).map(d=>({id:d._id, from:d.fromName, role:d.role, subject:d.subject, deal:d.deal, summary:d.summary, needs:d.needs, since:d.since||d.createdAt}));
+    const out = await sample.json(`You rank {{OWNER_FULL_NAME}}'s emails that need a reply by urgency. {{OWNER_NAME}} is {{OWNER_ROLE}} of {{COMPANY}}. Today is ${today()} (Eastern).
+urg 1 = do today: a real deadline in the next 2 days, a meeting being set for this week, a live deal or paying client waiting, or someone blocked on {{OWNER_NAME}} (references, signatures, legal).
+urg 2 = this week: real people or business waiting, intros worth taking, events with an RSVP.
+urg 3 = whenever: thank yous, FYIs, cold pitches, nothing riding on it.
+Return JSON {"items":[{"id","urg":1|2|3,"why":"under 8 words, no dashes"}]}.
+EMAILS:
+${JSON.stringify(list)}`, {modelTier:"default"});
+    for(const it of (out&&out.items)||[]){ const u=+it.urg; if(todo.some(d=>d._id===it.id) && [1,2,3].includes(u)) await patchDraft(it.id, {urg:u, urgWhy:String(it.why||"").replace(/[–—]/g,",").slice(0,80)}); }
+  }catch(e){ console.warn("rank", e&&e.code); }
+  finally{ ranking=false; }
+}
+async function writeQueuedDrafts(){
+  // World 1 never writes. Drafts get written only while you are in the Draft Room.
+  if(writing || !sample || currentTab()!=="drafts") return;
+  const retry = d => d.status==="failed" && d.error==="rate_limited" && Date.now()-Date.parse(d.failedAt||d.createdAt||0) > 120000;
+  const next = S.drafts.filter(d=>!d.noDraft && (d.status==="requested" || retry(d))).sort(byUrg)[0]; if(!next) return;
+  writing=true;
+  try{ await writeDraft(next); } finally { writing=false; }
+  setTimeout(writeQueuedDrafts, 300);
+}
+const CLOSINGS = ["Thanks,","Cheers,","Best,"];
+function closingFor(d){
+  if(d.closing && CLOSINGS.includes(d.closing)) return d.closing;
+  let n=-1; try{ n=parseInt(localStorage.getItem("iq_closing_n")||"-1",10); }catch(_){}
+  if(!(n>=0)) n=[...String(d.threadId||d._id||"")].reduce((a,c)=>a+c.charCodeAt(0),0);
+  n=(n+1)%CLOSINGS.length; try{ localStorage.setItem("iq_closing_n", String(n)); }catch(_){}
+  d.closing=CLOSINGS[n]; return d.closing;
+}
+// Ends every draft with a rotating closing (Thanks, Cheers, Best), then "{{OWNER_NAME}}" on its own line. Safe to run twice.
+function withClosing(d, text){
+  // Keep the closing Claude picked. On a quick live reply {{OWNER_NAME}} uses no sign-off and no name (55% of their sent mail), so don't force one.
+  let t=String(text||"").trim();
+  if(!t) return "";
+  t=t.replace(/\n\s*(?:Signed|Sincerely|Warm regards|Kind regards|Regards)[,!.]?\s*\n\s*{{OWNER_NAME}}\s*$/i,"\n\nMax");
+  return t;
+}
+async function writeDraft(d, note){
+  await patchDraft(d._id, {status:"writing"});
+  try{
+    let thread = "";
+    if(mcp){ try{ const p = await gmail("get_thread", {threadId:d.threadId, messageFormat:"PLAIN_TEXT"}); const ms=((p&&p.messages)||[]).slice(-4); thread = ms.map(m=>`FROM ${m.sender} (${m.date})\n${stripQuote(m.plaintextBody||m.snippet).slice(0,2500)}`).join("\n\n---\n\n"); }catch(_){ } }
+    const slots = await freeSlots();
+    const input = `${VOICE}\n\nTODAY: ${today()} (Eastern)\nFREE SLOTS (Eastern):\n${slots||"(calendar not available: suggest days only, no exact times)"}\n\nThread summary: ${d.summary}\nWhat it needs from {{OWNER_NAME}}: ${d.needs}\nReplying to: ${d.fromName} (${d.role})\n${note?`{{OWNER_NAME}}'s note for this rewrite: ${note}\n`:""}\nThread (oldest to newest, last few messages):\n${thread || "(full thread not available, use the summary)"}`;
+    const out = await sample.json(input, {modelTier:"default"});
+    const clean = t => String(t||"").replace(/\s[–—]\s?/g,", ").replace(/[–—]/g,", ").trim();
+    const options = ((out&&out.options)||[]).map(clean).filter(Boolean).slice(0,3).map(o=>withClosing(d,o));
+    if(!options.length) throw {code:"empty"};
+    await patchDraft(d._id, {status:"ready", options, pick:0, body:options[0], writtenAt:new Date().toISOString()});
+  }catch(e){
+    await patchDraft(d._id, {status:"failed", error:e&&e.code||"error", failedAt:new Date().toISOString()});
+  }
+}
+async function patchDraft(id, patch){ const d=S.drafts.find(x=>x._id===id); if(d) Object.assign(d,patch); if(db) try{ await db.doc("drafts/"+id).update(patch); }catch(e){ console.warn("draft patch", e&&e.code); } paintDrafts(); }
+const ST = {requested:"QUEUED", writing:"WRITING...", ready:"READY", placed:"IN GMAIL DRAFTS", done:"DONE", failed:"FAILED"};
+const HUES = ["#2fb84a","#e8473d","#2f8fe0","#ffb000","#9b5de5","#f15bb5","#00bbf9","#ff7a1a"];
+const hueOf = s => HUES[[...String(s)].reduce((a,c)=>a+c.charCodeAt(0),0)%HUES.length];
+const firstName = n => String(n||"?").split(/[\s@]/)[0];
+/* Original creatures, soft 3D shaded. Each has its own colors. Shading comes from shared gradients (#iqSh, #iqHi). */
+const INK="#16203d";
+const B=(tag,attrs,col)=>`<${tag} ${attrs} fill="${col}" stroke="${INK}" stroke-width="3.2" stroke-linejoin="round"/><${tag} ${attrs} fill="url(#iqSh)"/><${tag} ${attrs} fill="url(#iqHi)"/>`;
+const L=(d,col,w=7)=>`<path d="${d}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+const E=(x,y,r=5)=>`<ellipse cx="${x}" cy="${y}" rx="${r*0.8}" ry="${r}" fill="${INK}"/><circle cx="${x+r*0.25}" cy="${y-r*0.4}" r="${r*0.38}" fill="#fff"/>`;
+const GS=(cx=50,w=30)=>`<ellipse cx="${cx}" cy="93" rx="${w}" ry="4.5" fill="${INK}" opacity=".16"/>`;
+const CHARS = [
+ {name:"Mossling", svg:`${GS(50,34)}${L("M30 80 v8 M66 80 v8","#d9bd85",9)}${B("path",'d="M14 74 q2 -42 38 -44 q34 2 38 44 z"',"#4fae5a")}<path d="M34 46 l10 -6 l12 4 l4 12 l-10 8 l-12 -2z M58 56 l12 -2 l8 8" fill="none" stroke="#2f7d3a" stroke-width="3" opacity=".6"/>${B("ellipse",'cx="50" cy="30" rx="9" ry="5"',"#7fd36b")}${B("ellipse",'cx="84" cy="66" rx="11" ry="10"',"#f0d9a8")}${E(87,63,3.6)}`},
+ {name:"Glimmer", svg:`${GS(50,22)}${L("M34 58 q-6 16 2 32 M46 60 q4 16 -2 30 M56 60 q-4 16 2 30 M68 58 q6 16 -2 32","#f7a8d8",5)}${B("path",'d="M18 60 q0 -42 32 -42 q32 0 32 42 q-8 6 -16 0 q-8 6 -16 0 q-8 6 -16 0 q-8 6 -16 0z"',"#ffb3e1")}<ellipse cx="50" cy="34" rx="14" ry="8" fill="#fff" opacity=".35"/>${E(40,46,4.5)}${E(60,46,4.5)}<path d="M46 54 q4 3 8 0" fill="none" stroke="${INK}" stroke-width="2.5" stroke-linecap="round"/>`},
+ {name:"Pinchy", svg:`${GS(50,36)}${L("M26 70 l-12 14 M32 74 l-8 16 M74 70 l12 14 M68 74 l8 16","#d9622b",5)}${L("M38 48 l-14 -18 M62 48 l14 -18","#e8743a",6)}${B("path",'d="M8 30 q0 -16 14 -16 q8 0 10 6 l-10 4 l10 4 q-4 10 -12 10 q-12 0 -12 -8z"',"#f08a4b")}${B("path",'d="M92 30 q0 -16 -14 -16 q-8 0 -10 6 l10 4 l-10 4 q4 10 12 10 q12 0 12 -8z"',"#f08a4b")}${B("ellipse",'cx="50" cy="64" rx="30" ry="20"',"#f08a4b")}${L("M42 46 v-10 M58 46 v-10","#e8743a",4)}<circle cx="42" cy="34" r="6" fill="#fff"/><circle cx="58" cy="34" r="6" fill="#fff"/>${E(42,35,3.2)}${E(58,35,3.2)}`},
+ {name:"Flutter", svg:`${GS(50,26)}${B("ellipse",'cx="28" cy="38" rx="22" ry="17" transform="rotate(-25 28 38)"',"#b8a3f0")}${B("ellipse",'cx="72" cy="38" rx="22" ry="17" transform="rotate(25 72 38)"',"#b8a3f0")}${B("ellipse",'cx="32" cy="66" rx="14" ry="11" transform="rotate(20 32 66)"',"#9e86e6")}${B("ellipse",'cx="68" cy="66" rx="14" ry="11" transform="rotate(-20 68 66)"',"#9e86e6")}<circle cx="26" cy="38" r="6" fill="#ffd45e" opacity=".9"/><circle cx="74" cy="38" r="6" fill="#ffd45e" opacity=".9"/>${B("ellipse",'cx="50" cy="56" rx="10" ry="22"',"#efe6d6")}${L("M46 34 q-6 -14 -14 -16 M54 34 q6 -14 14 -16",INK,2.5)}${E(45,44,3.2)}${E(55,44,3.2)}`},
+ {name:"Thistle", svg:`${GS(50,32)}<path d="M18 66 l-6 -14 l12 2 l-2 -16 l12 8 l4 -16 l10 12 l8 -14 l6 14 l12 -8 l-2 16 l12 -2 l-6 14z" fill="#4c6a9e"/><path d="M18 66 l-6 -14 l12 2 l-2 -16 l12 8 l4 -16 l10 12 l8 -14 l6 14 l12 -8 l-2 16 l12 -2 l-6 14z" fill="url(#iqSh)"/>${B("ellipse",'cx="50" cy="70" rx="32" ry="20"',"#6f8fc4")}${B("ellipse",'cx="50" cy="78" rx="18" ry="11"',"#f3e6d2")}<circle cx="50" cy="72" r="3.5" fill="${INK}"/>${E(40,64,4)}${E(60,64,4)}${L("M36 88 v4 M64 88 v4","#5a77a8",7)}`},
+ {name:"Drift", svg:`${GS(50,40)}${L("M50 76 q4 10 -2 18","#2a8a8f",3)}${B("path",'d="M4 54 q20 -6 34 -26 q12 -8 24 0 q14 20 34 26 q-18 10 -30 20 q-20 6 -32 0 q-12 -10 -30 -20z"',"#3fb8bd")}${B("ellipse",'cx="50" cy="62" rx="18" ry="10"',"#e8fbfb")}${E(42,46,3.6)}${E(58,46,3.6)}<path d="M46 54 q4 3 8 0" fill="none" stroke="${INK}" stroke-width="2.5" stroke-linecap="round"/>`},
+ {name:"Ember", svg:`${GS(48,36)}${B("path",'d="M76 70 q14 -4 16 -20 q-8 6 -12 2 q4 -10 -2 -16 q-2 12 -12 16z"',"#ffb52e")}${B("path",'d="M16 72 q0 -22 22 -26 q26 -4 42 14 q6 12 -6 16 q-30 6 -58 -4z"',"#e8513a")}${L("M30 76 v12 M62 76 v12","#c63d2a",8)}${B("ellipse",'cx="26" cy="54" rx="16" ry="14"',"#e8513a")}<circle cx="44" cy="58" r="3" fill="#ffd45e"/><circle cx="56" cy="56" r="3" fill="#ffd45e"/><circle cx="66" cy="60" r="3" fill="#ffd45e"/>${E(22,50,4)}${E(32,50,4)}`},
+ {name:"Hoot", svg:`${GS(50,26)}${B("path",'d="M24 30 l-4 -16 l14 10z M76 30 l4 -16 l-14 10z"',"#8a5a3c")}${B("ellipse",'cx="50" cy="58" rx="30" ry="34"',"#a46c48")}${B("ellipse",'cx="50" cy="68" rx="18" ry="20"',"#f2dcbc")}<circle cx="38" cy="44" r="10" fill="#fff6e6"/><circle cx="62" cy="44" r="10" fill="#fff6e6"/>${E(38,44,5)}${E(62,44,5)}<path d="M46 52 l4 6 l4 -6z" fill="#ffb52e"/>${L("M42 92 v-2 M58 92 v-2","#ffb52e",6)}`},
+ {name:"Rootle", svg:`${GS(50,24)}${B("path",'d="M50 24 q-20 -20 -24 -8 q10 4 24 8z"',"#4fae5a")}${B("path",'d="M50 24 q20 -20 24 -8 q-10 4 -24 8z"',"#5fc46b")}${B("path",'d="M50 22 q-6 -18 0 -20 q6 2 0 20z"',"#3d9a48")}${B("path",'d="M50 24 q30 2 30 30 q0 24 -30 30 q-30 -6 -30 -30 q0 -28 30 -30z"',"#c45cc7")}${L("M40 84 l-4 8 M60 84 l4 8","#a648a9",6)}${E(41,52,4.2)}${E(59,52,4.2)}<path d="M45 62 q5 4 10 0" fill="none" stroke="${INK}" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="34" cy="62" rx="5" ry="3" fill="#ff9ad0" opacity=".6"/><ellipse cx="66" cy="62" rx="5" ry="3" fill="#ff9ad0" opacity=".6"/>`},
+ {name:"Swoop", svg:`${GS(50,26)}${B("path",'d="M28 56 q-20 -6 -24 -22 q16 0 30 10z"',"#2c3f78")}${B("path",'d="M72 56 q20 -6 24 -22 q-16 0 -30 10z"',"#2c3f78")}${B("ellipse",'cx="50" cy="58" rx="24" ry="28"',"#34508f")}${B("ellipse",'cx="50" cy="68" rx="14" ry="16"',"#f5f1ea")}<path d="M50 30 l-8 -10 l12 4z" fill="#34508f"/>${E(42,46,4)}${E(58,46,4)}<path d="M46 54 l4 5 l4 -5z" fill="#ffb52e"/>${B("ellipse",'cx="50" cy="20" rx="3" ry="3"',"#e8513a")}`},
+ {name:"Cragg", svg:`${GS(50,34)}${B("rect",'x="10" y="46" width="16" height="26" rx="6"',"#8b8f99")}${B("rect",'x="74" y="46" width="16" height="26" rx="6"',"#8b8f99")}${B("path",'d="M24 88 l-2 -40 l12 -22 l34 0 l10 22 l-2 40z"',"#a4a8b2")}<path d="M34 26 q10 -8 16 -2 q8 -8 18 2z" fill="#6fbf5c"/>${L("M36 70 l10 6 M60 64 l6 8","#80848e",3)}${B("rect",'x="34" y="44" width="32" height="12" rx="6"',"#3a3f4c")}<circle cx="43" cy="50" r="3" fill="#7fe0ff"/><circle cx="57" cy="50" r="3" fill="#7fe0ff"/>`},
+ {name:"Droplet", svg:`${GS(50,26)}${B("path",'d="M50 8 q30 34 30 54 a30 30 0 0 1 -60 0 q0 -20 30 -54z"',"#3d9bf0")}<path d="M36 46 q4 -14 12 -22" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".55"/>${E(41,62,4.5)}${E(59,62,4.5)}<path d="M45 72 q5 4 10 0" fill="none" stroke="${INK}" stroke-width="2.5" stroke-linecap="round"/>`},
+ {name:"Puffcap", svg:`${GS(50,22)}${B("rect",'x="34" y="50" width="32" height="40" rx="14"',"#f3e6d2")}${B("path",'d="M10 56 q0 -44 40 -44 q40 0 40 44 q-40 8 -80 0z"',"#e04848")}<circle cx="30" cy="34" r="6" fill="#fff" opacity=".9"/><circle cx="56" cy="24" r="5" fill="#fff" opacity=".9"/><circle cx="72" cy="42" r="6" fill="#fff" opacity=".9"/><circle cx="46" cy="44" r="3.5" fill="#fff" opacity=".9"/>${E(43,68,3.8)}${E(57,68,3.8)}`},
+ {name:"Coil", svg:`${GS(50,36)}${B("ellipse",'cx="50" cy="78" rx="34" ry="12"',"#5bb85a")}${B("ellipse",'cx="50" cy="66" rx="26" ry="10"',"#6cc96a")}${B("path",'d="M60 62 q16 -16 6 -34 q-6 -12 -18 -10 q-16 2 -16 18 q0 14 14 14"',"#7bd97a")}${B("ellipse",'cx="50" cy="28" rx="16" ry="14"',"#7bd97a")}<path d="M50 40 v6 l-3 4 M50 46 l3 4" fill="none" stroke="#e8513a" stroke-width="2" stroke-linecap="round"/>${E(44,26,3.8)}${E(56,26,3.8)}${L("M30 76 h40",'#4a9c49',2)}`},
+];
+const IQDEFS = `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><radialGradient id="iqHi" cx=".32" cy=".26" r=".55"><stop offset="0" stop-color="#fff" stop-opacity=".6"/><stop offset=".6" stop-color="#fff" stop-opacity=".08"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient><radialGradient id="iqSh" cx=".42" cy=".36" r=".78"><stop offset=".5" stop-color="#0b1640" stop-opacity="0"/><stop offset="1" stop-color="#0b1640" stop-opacity=".38"/></radialGradient></defs></svg>`;
+
+function charFor(d, taken){
+  let h=[...String(d.fromName||d.replyTo||"")].reduce((a,c)=>(a*31+c.charCodeAt(0))>>>0,7);
+  let i=h%CHARS.length, k=0; while(taken && taken.has(i) && k++<CHARS.length) i=(i+1)%CHARS.length;
+  if(taken) taken.add(i); return i;
+}
+function critterSvg(i){ return `<svg viewBox="0 0 100 100" aria-hidden="true">${CHARS[i].svg}</svg>`; }
+let openDraft = null; let charMap = {};
+function critter(d, i){
+  const st = d.noDraft?"todo":d.status; const ci = charMap[d._id] ?? 0;
+  const lab = {todo:"To do", requested:"Writing", writing:"Writing", ready:"Ready", placed:"In Gmail", failed:"Retrying"}[st]||"";
+  return `<div class="pc ${d.flagged?"flag":""}" style="--d:${-(i*0.37)%3}s">
+    <button type="button" class="pcmain" data-open="${esc(d._id)}" aria-label="Open ${esc(d.fromName)}">
+      <span class="pcav">${critterSvg(ci)}</span>
+      <span class="pctx"><span class="pcname">${d.flagged?`<span class="pcflag">${FLAG_SVG}</span>`:""}${esc(d.fromName||firstName(d.replyTo))}</span>
+      <span class="pcsub">${esc(d.urgWhy||d.subject||"")}</span>
+      <span class="pcst ${st}">${lab}</span></span>
+    </button>
+    <button type="button" class="pcarch" data-arch="${esc(d._id)}" title="Archive: already handled" aria-label="Archive ${esc(d.fromName)}">&#10003;</button>
+  </div>`;
+}
+async function archiveDraft(id){
+  const d=S.drafts.find(x=>x._id===id); if(!d) return;
+  if(openDraft===id) openDraft=null;
+  await finishDraft(id);
+  if(d.threadId){ if(mcp){ try{ await archiveNow(d.threadId); }catch(_){ await applyArchive(d.threadId); } } else { await applyArchive(d.threadId); } }
+  toast(`Archived ${firstName(d.fromName)} in Gmail.`);
+}
+let dloopBusy=false; const dloopAt={};
+async function draftLoopCheck(){
+  // Clears drafts you already handled in Gmail: you replied after it got here, or it's out of the inbox.
+  if(dloopBusy || !mcp) return; dloopBusy=true;
+  try{
+    for(const d of S.drafts.filter(x=>x.status!=="done" && x.threadId)){
+      if(dloopAt[d._id] && Date.now()-dloopAt[d._id] < 10*60e3) continue; dloopAt[d._id]=Date.now();
+      try{
+        const p = await gmail("get_thread", {threadId:d.threadId, messageFormat:"METADATA_ONLY"});
+        const msgs=(p&&p.messages)||[]; const last=msgs[msgs.length-1]; if(!last) continue;
+        const inInbox = msgs.some(m=>(m.labelIds||[]).includes("INBOX"));
+        const youReplied = /^{{OWNER_EMAIL_LOCAL}}@yourcompany\.com$/i.test(last.sender||"");
+        if(!inInbox || youReplied){
+          await patchDraft(d._id, {status:"done", doneAt:new Date().toISOString(), doneWhy: youReplied?"You replied in Gmail":"Archived in Gmail"});
+          if(youReplied && inInbox){ try{ await archiveNow(d.threadId); }catch(_){ } }
+        }
+      }catch(e){ console.warn("draft loop", e&&e.code); }
+    }
+  } finally { dloopBusy=false; }
+}
+function paintDrafts(){
+  const host=$("#draftList"); if(!host) return;
+  const ae = document.activeElement; if(ae && ae.dataset && ae.dataset.body) return; // don't repaint under your cursor
+  const snz = d => d.snoozeUntil && Date.parse(d.snoozeUntil) > Date.now();
+  const snoozed = S.drafts.filter(d=>d.status!=="done" && snz(d)).sort((a,b)=>String(a.snoozeUntil).localeCompare(String(b.snoozeUntil)));
+  const open = S.drafts.filter(d=>d.status!=="done" && (!snz(d) || d._id===openDraft)).sort(byUrg);
+  const done = S.drafts.filter(d=>d.status==="done").length;
+  if(openDraft && !open.some(d=>d._id===openDraft)) openDraft=null;
+  if(openDraft){ paintOneDraft(host, S.drafts.find(d=>d._id===openDraft)); return; }
+  $("#draftIntro").hidden=false;
+  const taken=new Set(); charMap={}; open.forEach(d=>{ charMap[d._id]=charFor(d,taken); });
+  if(!open.length){ host.innerHTML = `<div class="item"><div class="ctx">${done?`Draft Room clear. ${done} done.`:"Empty. Send a card right in World 1 and it shows up here."}</div></div>`; return; }
+  const groups = [[0,"FLAGGED","hot"],[1,"DO TODAY","hot"],[2,"THIS WEEK",""],[3,"WHEN YOU CAN","calm"],[2.5,"SORTING...","calm"]];
+  const snzHtml = snoozed.length ? `<details class="snzbox"><summary>Snoozed (${snoozed.length})</summary><div class="snzlist">${snoozed.map(d=>`<div class="snzrow"><span><b>${esc(d.fromName)}</b> back ${esc(new Date(d.snoozeUntil).toLocaleDateString("en-US",{weekday:"short",month:"numeric",day:"numeric",timeZone:"America/New_York"}))}</span><button class="btn" type="button" data-unsnooze="${esc(d._id)}">WAKE NOW</button></div>`).join("")}</div></details>` : "";
+  let n=0; host.innerHTML = groups.map(([u,label,cls])=>{ const g=open.filter(d=>urgOf(d)===u); if(!g.length) return ""; const html=`<div class="lane ${cls}"><span>${label}</span><b>${g.length}</b></div><div class="pgrid">${g.map(d=>critter(d,n++)).join("")}</div>`; return html; }).join("") + snzHtml;
+  host.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{ openDraft=b.dataset.open; paintDrafts(); window.scrollTo({top:0}); });
+  host.querySelectorAll("[data-unsnooze]").forEach(b=>b.onclick=()=>{ patchDraft(b.dataset.unsnooze, {snoozeUntil:null}); toast("Back in the Draft Room."); });
+  host.querySelectorAll("[data-arch]").forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); archiveDraft(b.dataset.arch); });
+}
+function paintOneDraft(host, d){
+  $("#draftIntro").hidden=true;
+  const st = d.noDraft ? "todo" : d.status; const opts = ((d.options&&d.options.length) ? d.options : (d.body?[d.body]:[])).map(o=>withClosing(d,o));
+  const pick = Math.min(d.pick||0, Math.max(0,opts.length-1)); const body = (d.editedBy==="max" && d.body) ? d.body : (opts[pick]||"");
+  host.innerHTML = `<div class="item draft-one">
+    <div class="top"><button class="btn" type="button" id="drBack">&#9664; All drafts</button><span class="topr"><span class="st ${st==="todo"?"ready":st}">${st==="todo"?"TO DO, NO REPLY":ST[st]||st}</span><button class="flagbtn inline ${d.flagged?"on":""}" type="button" data-flag="${esc(d._id)}" title="${d.flagged?"Unflag":"Flag urgent"}" aria-pressed="${d.flagged?"true":"false"}" aria-label="${d.flagged?"Unflag":"Flag urgent, move to top"}">${FLAG_SVG}</button></span></div>
+    <div class="who"><span class="critter mini">${critterSvg(charMap[d._id] ?? charFor(d))}</span>
+      <div><h3>${esc(d.fromName)}</h3><div class="ctx">${esc(d.role||"")}</div></div></div>
+    <div class="pills">${d.urg===1?`<span class="pill nda">DO TODAY</span>`:d.urg===2?`<span class="pill">THIS WEEK</span>`:d.urg===3?`<span class="pill age">WHEN YOU CAN</span>`:""}${d.urgWhy?`<span class="pill age">${esc(d.urgWhy)}</span>`:""}${d.deal?`<span class="pill deal">${esc(d.deal)}</span>`:""}${d.nda?`<span class="pill nda">NDA</span>`:""}</div>
+    <div class="subject">${esc(d.subject)}</div>
+    <div class="summary" style="font-size:17px">${esc(d.summary)}</div>
+    <details class="orig" id="drOrig"><summary>&#9660; See full email</summary><div id="drOrigBody"><p class="hint">Loading...</p></div></details>
+    ${d.noDraft ? `<div class="needs"><b>TO DO</b>${esc(d.needs||"Open it in Gmail and handle it.")}</div>` :
+      st==="requested"||st==="writing" ? `<p class="hint">${sample?"Writing three options in your voice, with real times from your calendar...":"Claude isn't available on this page right now. Open the page on claude.ai to write these."}</p>` :
+      st==="failed" ? `<p class="hint">Couldn't write this one (${esc(d.error||"")}). Try Rewrite.</p>` :
+      `<div class="opts">${opts.map((o,i)=>`<button type="button" class="opt${i===pick?" on":""}" data-pick="${i}"><b>Option ${i+1}</b><span>${esc(o)}</span></button>`).join("")}</div>
+      <textarea data-body="${esc(d._id)}" aria-label="Your reply">${esc(body)}</textarea>
+      <div class="ctx">To ${esc(d.replyTo)}${(d.cc||[]).length?` · cc ${esc(d.cc.join(", "))}`:""}</div>`}
+    ${d.status==="placed"&&d.viewUrl?`<p class="hint">In Gmail Drafts, threaded under the original. <a href="${esc(d.viewUrl)}" target="_blank" rel="noopener">Open draft</a> and hit send.</p>`:""}
+    <div class="row">
+      ${!d.noDraft && st==="ready" ? `<button class="btn pink" type="button" data-place="${esc(d._id)}" ${mcp?"":"disabled title=\"Needs Gmail allowed for this page\""}>PUT IN GMAIL DRAFTS</button>` : ""}${!d.noDraft && (st==="ready"||st==="placed") ? `<button class="btn" type="button" data-copy="${esc(d._id)}">COPY</button>` : ""}
+      ${!d.noDraft && (st==="ready"||st==="failed"||st==="placed") && sample ? `<button class="btn" type="button" data-redo="${esc(d._id)}">NEW OPTIONS</button>` : ""}
+      <a class="btn" href="${esc(d.url||"#")}" target="_blank" rel="noopener">OPEN THREAD</a>
+      <button class="btn primary" type="button" data-done="${esc(d._id)}">DONE</button>
+      <button class="btn" type="button" data-archone="${esc(d._id)}" title="Already handled: mark done and archive in Gmail">ARCHIVE</button>
+      <button class="btn" type="button" data-snooze="3" title="Hide it here for 3 days">SNOOZE 3 DAYS</button>
+      <button class="btn" type="button" data-snooze="7" title="Hide it here for a week">SNOOZE 1 WEEK</button>
+      <button class="btn" type="button" data-snooze="30" title="Hide it here for a month">SNOOZE 1 MONTH</button>
+    </div></div>`;
+  $("#drBack").onclick=()=>{ openDraft=null; paintDrafts(); };
+  $("#drOrig").addEventListener("toggle", e=>{ if(e.target.open) renderThread(d.threadId, $("#drOrigBody"), d.snippet||d.summary, ()=>openDraft===d._id); });
+  host.querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.pick; patchDraft(d._id,{pick:i, body:opts[i]}); });
+  host.querySelectorAll("[data-body]").forEach(t=>{ t.addEventListener("change", ()=>patchDraft(t.dataset.body, {body:t.value, editedBy:"max"})); });
+  host.querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{ const t=host.querySelector("[data-body]"); const v=t?t.value:""; try{ await navigator.clipboard.writeText(v); toast("Copied. Paste it in Gmail."); }catch(_){ if(t){ t.focus(); t.select(); } toast("Selected. Copy it with your keyboard."); } });
+  host.querySelectorAll("[data-place]").forEach(b=>b.onclick=()=>placeDraft(b.dataset.place, b));
+  host.querySelectorAll("[data-redo]").forEach(b=>b.onclick=()=>{ const row=b.closest(".row"); if(host.querySelector(".redo")) return; const f=document.createElement("div"); f.className="formrow redo"; f.innerHTML=`<input type="text" id="redoNote" placeholder="What to change (optional)" aria-label="Rewrite note"><button class="btn" type="button">GO</button>`; row.after(f); f.querySelector("button").onclick=()=>writeDraft(d, f.querySelector("input").value||"Give me three fresh ones."); });
+  host.querySelectorAll("[data-done]").forEach(b=>b.onclick=()=>{ openDraft=null; finishDraft(b.dataset.done); });
+  host.querySelectorAll("[data-snooze]").forEach(b=>b.onclick=()=>{ const n=+b.dataset.snooze; const t=new Date(Date.now()+n*864e5); t.setHours(9,0,0,0); openDraft=null; patchDraft(d._id, {snoozeUntil:t.toISOString()}); toast(`Snoozed ${n===30?"a month":n===7?"a week":n+" days"}. It comes back ${t.toLocaleDateString("en-US",{weekday:"short",month:"numeric",day:"numeric"})}.`); });
+  host.querySelectorAll("[data-archone]").forEach(b=>b.onclick=()=>archiveDraft(b.dataset.archone));
+  host.querySelectorAll("[data-flag]").forEach(b=>b.onclick=()=>{ const on=!d.flagged; patchDraft(d._id, on?{flagged:true, flaggedAt:new Date().toISOString()}:{flagged:false}); toast(on?"Flagged. Top of the list.":"Unflagged."); });
+}
+async function placeDraft(id, btn){
+  const d=S.drafts.find(x=>x._id===id); if(!d||!mcp) return;
+  const t=$(`[data-body="${id}"]`); const body = t ? t.value : d.body;
+  btn.disabled=true; btn.textContent="PLACING...";
+  try{
+    // Find the latest message in the thread so the draft threads under it.
+    const p = await gmail("get_thread", {threadId:d.threadId, messageFormat:"METADATA_ONLY"});
+    const msgs=(p&&p.messages)||[]; const last=msgs[msgs.length-1];
+    const subj = /^re:/i.test(d.subject) ? d.subject : "Re: "+d.subject;
+    const input = {to:[d.replyTo].filter(Boolean), subject:subj, body};
+    if((d.cc||[]).length) input.cc = d.cc;
+    if(last && last.id) input.replyToMessageId = last.id;
+    const r = await gmail("create_draft", input);
+    await patchDraft(id, {status:"placed", body, gmailDraftId:(r&&r.id)||"", viewUrl:(r&&r.viewUrl)||"", placedAt:new Date().toISOString()});
+    toast("In Gmail Drafts. Review and send it from Gmail.");
+  }catch(e){ btn.disabled=false; btn.textContent="PUT IN GMAIL DRAFTS"; toast("Couldn't place it ("+(e.code||"error")+"). Copy it instead."); }
+}
+async function finishDraft(id){
+  const c=cfg(); await patchDraft(id, {status:"done", doneAt:new Date().toISOString()});
+  const xp=Math.round(c.xpPerDraft*mult()); await addXp(xp); pop("+"+xp+" XP"); sfx.coin();
+  if(!S.drafts.some(d=>d.status!=="done")){ await addXp(c.draftRoomBonus); celebrate("Draft Room clear!", `+${c.draftRoomBonus} XP bonus. Go hit send in Gmail.`); }
+}
+
+/* ---------- loader: next batch of inbox threads ---------- */
+const NOISE_RX = /(no-?reply|notifications?@|newsletter|substack\.com|beehiiv|mailchimp|@email\.|@mail\.|@e\.|@news|marketing|digest|receipts?@|invoice\+|billing@|hello@mercury|@stripe\.com|@ramp\.com|@gusto\.com|@post\.xero)/i;
+const CAL_RX = /^(invitation|updated invitation|accepted|declined|tentatively accepted|canceled event|cancelled event|new event|event canceled)\b/i;
+const SORT_PROMPT = `You sort email for {{OWNER_FULL_NAME}}, {{OWNER_ROLE}} of {{COMPANY}} (teammates use @yourcompany.com; key clients: {{KEY_CLIENTS}}). For each thread return JSON {"items":[{"id","role","others":[names],"summary","needs","bucket","why","deal","nda","noDraft"}]}.
+role: sender's role and company in under 8 words. others: up to 4 other people on the thread by first name or company. summary: 2 to 3 short lines, under 60 words, what it is and what they want. needs: what {{OWNER_NAME}} must do, one line, or "Nothing" . bucket: respond ({{OWNER_NAME}} must reply or act), wait (ball is in their court, {{OWNER_NAME}} is waiting), noise (needs nothing), else (a teammate or another party owns it). why: one line. deal: short deal tag like a client name, Hiring, Finance, or "". nda: true for any deal under NDA ({{NDA_DEALS}}). noDraft: true when the action is a form, payment or click, not a written reply.
+Plain words, no dashes, no em dashes. Do not invent facts. Threads:\n`;
+/* Cards show up first with the raw snippet. Summaries land a few seconds later, six threads at a time. */
+let summing = false;
+async function summarize(list){
+  if(summing || !list.length || !mcp || !sample) return; summing = true;
+  try{
+    let done=0;
+    for(let i=0;i<list.length;i+=6){
+      $("#loadNote").textContent = `Summing up ${list.length} emails (${done} done). You can start sorting now.`;
+      const chunk = list.slice(i,i+6);
+      const packs = await Promise.all(chunk.map(async x=>{
+        const b=x.base; let msgs=[]; try{ const p=await gmail("get_thread",{threadId:x.id, messageFormat:"MINIMAL"}); msgs=(p&&p.messages)||[]; }catch(_){ }
+        const patch={}; if(msgs[0]&&msgs[0].date) patch.since=msgs[0].date;
+        const people = new Set(); msgs.forEach(m=>[m.sender].concat(m.toRecipients||[],m.ccRecipients||[]).forEach(a=>{ if(a && !/^{{OWNER_EMAIL_LOCAL}}@yourcompany\.com$/i.test(a)) people.add(String(a).toLowerCase()); }));
+        if(msgs.length) patch.cc = [...people].filter(a=>a!==b.from).slice(0,8);
+        x.patch = patch;
+        return {id:x.id, subject:b.subject, from:(b.fromName||"")+" <"+b.from+">", people:[...people].slice(0,10), messages: msgs.length ? msgs.slice(-6).map(m=>({from:m.sender, date:m.date, text:String(m.snippet||"").slice(0,400)})) : [{from:b.from, date:b.lastDate, text:b.snippet||""}]};
+      }));
+      let out=null;
+      try{ out = await withTimeout(sample.json(SORT_PROMPT+JSON.stringify(packs), {modelTier:"quick"}), 60000); }catch(e){ console.warn("synth", e&&e.code); }
+      const items = (out&&out.items)||[];
+      for(const x of chunk){
+        const it = items.find(y=>y.id===x.id); const card = S.cards.find(c=>c._id===x.id);
+        if(!it){ if(card) card.sumTried=true; }
+        else await setCard(x.id, Object.assign(x.patch||{}, {summed:true, role:it.role||"", others:it.others||[], summary:it.summary||x.base.snippet||"", needs:it.needs&&it.needs!=="Nothing"?it.needs:"", bucket:BUCKETS[it.bucket]?it.bucket:"respond", why:it.why||"", deal:it.deal||"", nda:!!it.nda, noDraft:!!it.noDraft}));
+        if(current && current._id===x.id){ const o=$("#orig"); if(!(o&&o.open)) renderCard(); }
+      }
+      done += chunk.length;
+    }
+  } finally { summing = false; }
+}
+async function loadBatch(){
+  if(busyLoad) return; if(!mcp || !sample){ $("#loadNote").textContent = "Loading needs Gmail and Claude allowed for this page. Check the page's permissions, or ask in the chat for a scan to load the next batch."; return; }
+  busyLoad=true; $("#loadBtn").disabled=true; $("#loadNote").textContent=""; loadStep("Checking the mailbox...", "Reading your Primary inbox.", 12);
+  try{
+    const have = new Set(S.cards.map(c=>c._id));
+    let fresh=[], token=undefined, pages=0; const tab="primary";
+    while(fresh.length < cfg().batch && pages < 5){
+      const p = await gmail("search_threads", Object.assign({query:"in:inbox category:primary", pageSize:50, view:"THREAD_VIEW_SUMMARY"}, token?{pageToken:token}:{}));
+      for(const t of (p&&p.threads)||[]) if(!have.has(t.id) && fresh.length<cfg().batch) fresh.push(t);
+      token = p && p.nextPageToken; pages++; if(!token) break;
+    }
+    if(!fresh.length){ $("#loadNote").textContent="No new Primary mail to load. You're caught up."; return; }
+    loadStep("Sorting the mail bag...", fresh.length+" new thread"+(fresh.length===1?"":"s")+" found. Cards are coming up.", 45);
+    const emails=[], jobs=[]; let cal=0, noise=0, handled=0;
+    for(const t of fresh){
+      const m=(t.messages||[])[0]||{}; const sender=String(m.sender||"").toLowerCase();
+      const name=((m.addressDisplayNames||[]).find(a=>a.emailAddress===m.sender)||{}).displayName || sender;
+      const base={subject:m.subject||"", from:sender, fromName:name, snippet:String(m.snippet||"").replace(/&#39;/g,"'").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/[͏﻿‌]+/g,"").replace(/\s+/g," ").slice(0,300), lastDate:m.date||"", since:m.date||"", msgCount:t.messageCount||1, url:t.viewUrl||m.viewUrl||"", lastMessageId:m.id||"", status:"open", tab, loadedAt:new Date().toISOString(), by:"page"};
+      if(CAL_RX.test(base.subject) || /calendar-notification@google\.com/.test(sender)){ cal++; jobs.push(async()=>{ await writeCard(t.id, Object.assign(base,{kind:"calendar", status:"cleared", clearedWhy:"Calendar notice, auto-archived"})); try{ await archiveNow(t.id); }catch(_){ await applyArchive(t.id); } }); continue; }
+      if(/@yourcompany\.com$/.test(sender)){ handled++; const who=sender.startsWith("{{OWNER_EMAIL_LOCAL}}@")?"You":name.split(" ")[0]; jobs.push(()=>writeCard(t.id, Object.assign(base,{kind:"handled", handledBy:who}))); continue; }
+      if(NOISE_RX.test(sender)){ noise++; jobs.push(()=>writeCard(t.id, Object.assign(base,{kind:"noise", status:"left", clearedWhy:"Newsletter or receipt, left alone (Primary only)"}))); continue; }
+      Object.assign(base, {kind:"email", summed:false, summary:base.snippet, bucket:"respond", replyTo:sender});
+      emails.push({id:t.id, base}); jobs.unshift(()=>writeCard(t.id, base));
+    }
+    await pool(jobs, 6);
+    loadStep("Almost there...", "Opening the first card.", 90);
+    renderCard();
+    await summarize(emails);
+    $("#loadNote").textContent = `Loaded ${emails.length} card${emails.length===1?"":"s"}. ${noise} newsletters left alone, ${handled} your team has, ${cal} calendar notices archived.`;
+    refreshInbox();
+  }catch(e){ console.warn("load", e); $("#loadNote").textContent = "Loading stopped ("+((e&&e.code)||"error")+"). Tap LOAD NEXT BATCH to try again."; }
+  finally{ busyLoad=false; $("#loadBtn").disabled=false; if(!$("#card")) renderCard(); }
+}
+async function writeCard(id, row){
+  const ex = S.cards.find(c=>c._id===id); if(ex) Object.assign(ex,row); else S.cards.push(Object.assign({_id:id},row));
+  if(db) try{ await db.doc("cards/"+id).set(row); }catch(e){ console.warn("card", e&&e.code); }
+}
+$("#loadBtn").onclick = loadBatch;
+
+/* Silently archive seeded calendar notices ({{OWNER_NAME}}'s standing rule). */
+async function sweepCalendar(){
+  if(!mcp) return;
+  for(const c of S.cards.filter(c=>c.kind==="calendar" && c.status==="open")){
+    try{ await archiveNow(c._id); await setCard(c._id,{status:"cleared", clearedWhy:"Calendar notice, auto-archived"}); }catch(e){ console.warn("cal archive", e&&e.code); }
+  }
+}
+
+/* ---------- shop ---------- */
+function paintShop(){
+  $("#ledger").innerHTML = S.ledger.slice().sort((a,b)=>String(b.ts).localeCompare(String(a.ts))).slice(0,40).map(l=>`<div><span>${esc(l.note||l.type)}</span><span class="${l.amount>=0?"p":"m"}">${l.amount>=0?"+":""}${money(l.amount)}</span></div>`).join("") || `<div><span>No coins yet. Sort ${cfg().goal} today to earn ${money(cfg().reward)}.</span><span></span></div>`;
+  const w=wallet();
+  $("#wishList").innerHTML = S.wish.filter(x=>!x.removed).sort((a,b)=>(a.bought?1:0)-(b.bought?1:0)).map(x=>`<div class="item"><div class="top"><h3>${esc(x.name)}</h3><span class="wallet" style="font-size:30px">${money(x.price)}</span></div>
+    <div class="row">${x.bought?`<span class="st done">BOUGHT ${esc(fmtDate(x.boughtAt).toUpperCase())}</span>`:`<button class="btn primary" type="button" data-buy="${esc(x._id)}" ${w>=x.price?"":"disabled"}>${w>=x.price?"MARK BOUGHT":`NEED ${money(x.price-w)} MORE`}</button>`}<button class="btn" type="button" data-rm="${esc(x._id)}">REMOVE</button></div></div>`).join("");
+  document.querySelectorAll("[data-buy]").forEach(b=>b.onclick=async()=>{ const x=S.wish.find(i=>i._id===b.dataset.buy); if(!x) return; await addLedger("spend", -x.price, "Bought: "+x.name); x.bought=true; x.boughtAt=new Date().toISOString(); if(db) try{ await db.doc("wishlist/"+x._id).update({bought:true, boughtAt:x.boughtAt}); }catch(_){} sfx.win(); paintShop(); });
+  document.querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{ const x=S.wish.find(i=>i._id===b.dataset.rm); if(!x) return; x.removed=true; if(db) try{ await db.doc("wishlist/"+x._id).update({removed:true}); }catch(_){} paintShop(); });
+}
+$("#wishForm").addEventListener("submit", async e=>{ e.preventDefault(); const name=$("#wishName").value.trim(); const price=Math.round(+$("#wishPrice").value); if(!name||!(price>0)) return; const id="i-"+uid(); const row={name, price, bought:false, createdAt:new Date().toISOString()}; S.wish.push(Object.assign({_id:id},row)); if(db) try{ await db.doc("wishlist/"+id).set(row); }catch(_){} $("#wishName").value=""; $("#wishPrice").value=""; paintShop(); });
+$("#convertBtn").onclick = async()=>{ const c=cfg(), g=S.game||{}; const units=Math.floor((g.xp||0)/c.xpUnit); if(!units){ toast(`Need ${c.xpUnit} XP to cash in.`); return; } await saveGame({xp:(g.xp||0)-units*c.xpUnit}); await addLedger("xp", units*c.dollarsPerUnit, `Cashed in ${units*c.xpUnit} XP`); sfx.coin(); paintShop(); };
+
+/* ---------- rules drawer ---------- */
+$("#gearBtn").onclick = () => {
+  const c=cfg(); const host=$("#drawerHost");
+  const f=(k,l)=>`<label for="set-${k}">${l}<input type="number" id="set-${k}" value="${c[k]}" min="0"></label>`;
+  host.innerHTML = `<div class="scrim" id="scrim"></div><aside class="drawer" role="dialog" aria-label="Game rules">
+    <h2 class="sec" style="margin-top:0">GAME RULES</h2>
+    ${f("goal","Daily goal (emails sorted)")}${f("reward","Hit it: shop money $")}${f("penalty","Miss it: lose $")}${f("zeroBonus","Inbox Zero bonus $ (once)")}
+    ${f("xpPerSort","XP per sort")}${f("xpPerExtra","XP per email past the goal")}${f("xpPerDraft","XP per draft done")}${f("draftRoomBonus","XP for clearing the Draft Room")}
+    ${f("xpUnit","XP per cash-in")}${f("dollarsPerUnit","$ per cash-in")}${f("batch","Emails per batch")}
+    <label for="set-weekends">Weekends count<input type="checkbox" id="set-weekends" ${c.weekends?"checked":""}></label>
+    <p class="hint">Days close at midnight Eastern. A missed day costs the penalty and resets the streak. Streak adds 0.1x to XP per day, up to 2x.</p>
+    <p class="hint">This page can only read mail, archive (remove from Inbox, never delete) and create Gmail drafts. It cannot send, reply, forward or delete.</p>
+    <div class="row"><button class="btn primary" id="setSave" type="button">SAVE</button><button class="btn" id="setClose" type="button">CLOSE</button></div>
+  </aside>`;
+  const close=()=>{ host.innerHTML=""; };
+  $("#scrim").onclick=close; $("#setClose").onclick=close;
+  $("#setSave").onclick=async()=>{ const s={}; for(const k of Object.keys(DEF)){ if(k==="weekends") s[k]=$("#set-weekends").checked; else { const v=+$("#set-"+k).value; s[k]= isFinite(v)&&v>=0 ? v : DEF[k]; } } await saveGame({settings:s}); close(); toast("Rules saved."); renderCard(); paintShop(); };
+};
+
+
+/* ---------- World 3: Unsub Run ---------- */
+/* Quest cannot unsubscribe from anything itself. It labels a sender's mail "Unsub/approved" in Gmail.
+   The Apps Script (unsubscribe-sweep.gs) finds that label, unsubscribes, and relabels Unsub/done or Unsub/needs-click. */
+const U = {size:10, busy:false, cands:[], idx:0, scanning:false, note:"", labelIds:{}, status:null};
+const ULABEL = {approved:"Unsub/approved", done:"Unsub/done", click:"Unsub/needs-click"};
+const UNSUB_KEEP_RX = /(mercury\.com|gusto\.com|frame\.io|americanexpress\.com|shopify\.com|atlassian\.com|carta\.com|xero\.com|clio\.com|squarespace\.com|slack-mail\.com|asana\.com|stripe\.com|paypal\.com|bill\.com|ramp\.com|brex\.com|quickbooks|intuit\.com|docusign|yourcompany\.com|read\.ai|otter\.ai|google\.com|notion\.so|invoice\+|billing@|payroll)/i;
+const ukey = e => String(e).toLowerCase().replace(/[^a-z0-9_.@+-]/g,"_");
+async function ensureUnsubLabel(name){
+  if(U.labelIds[name]) return U.labelIds[name];
+  let ls = await gmail("list_labels", {}); let f = ((ls&&ls.labels)||[]).find(l=>l.name===name);
+  if(!f){ await gmail("create_label", {displayName:name}); ls = await gmail("list_labels", {}); f = ((ls&&ls.labels)||[]).find(l=>l.name===name); }
+  if(!f) throw {code:"no_label"};
+  return (U.labelIds[name] = f.labelId);
+}
+async function scanClutter(){
+  if(!mcp){ U.note="Gmail isn't allowed for this page yet."; paintUnsub(); return; }
+  U.scanning=true; U.cands=[]; U.idx=0; U.note="Reading your mail..."; paintUnsub();
+  const by=new Map(), done=new Set((S.unsub||[]).map(d=>d._id));
+  const queries=["category:promotions","category:updates","category:social","category:forums","category:primary (unsubscribe OR newsletter OR digest OR webinar)"];
+  let failed=false;
+  try{
+    for(const q of queries){
+      let token, pages=0;
+      while(pages<3){
+        U.note="Reading "+q.replace("category:","").split(" ")[0]+", page "+(pages+1)+"..."; paintUnsub();
+        const p = await gmail("search_threads", Object.assign({query:q+" newer_than:60d", pageSize:50, view:"THREAD_VIEW_SUMMARY"}, token?{pageToken:token}:{}));
+        for(const t of (p&&p.threads)||[]){
+          const m=(t.messages||[])[0]||{}; const em=String(m.sender||"").toLowerCase(); if(!em) continue;
+          if(UNSUB_KEEP_RX.test(em)) continue;
+          if((m.labelIds||[]).includes("SENT")) continue;
+          const key=ukey(em); if(done.has(key)) continue;
+          let r=by.get(key);
+          if(!r){ const nm=((m.addressDisplayNames||[]).find(a=>a.emailAddress===m.sender)||{}).displayName||em; r={key,email:em,name:nm,count:0,unread:0,subject:m.subject||"",date:m.date||"",threadIds:[]}; by.set(key,r); }
+          r.count++; if((m.labelIds||[]).includes("UNREAD")) r.unread++; if(r.threadIds.length<3) r.threadIds.push(t.id);
+        }
+        token=p&&p.nextPageToken; pages++; if(!token) break;
+      }
+    }
+  }catch(e){ failed=true; U.note="Stopped reading ("+(e.code||"error")+"). Showing what I found so far."; }
+  U.cands=[...by.values()].filter(r=>r.count>=2).sort((a,b)=>b.count-a.count);
+  U.scanning=false; if(!failed) U.note=U.cands.length+" senders worth a look, most emails first."; paintUnsub();
+}
+async function decideUnsub(v){
+  const c=U.cands[U.idx]; if(!c) return;
+  if(v==="s"){ U.idx++; paintUnsub(); return; }
+  if(v==="d"){
+    try{
+      const id = await ensureUnsubLabel(ULABEL.approved);
+      for(const tid of c.threadIds) await gmail("label_thread", {threadId:tid, labelIds:[id]});
+    }catch(e){ toast("Couldn't label "+c.name+"'s mail ("+(e.code||"error")+"). Nothing changed."); return; }
+  }
+  const row={email:c.email, name:c.name, status:v==="d"?"approved":"keep", count:c.count, at:new Date().toISOString()};
+  (S.unsub=S.unsub||[]).push(Object.assign({_id:c.key},row));
+  if(db) try{ await db.doc("unsub/"+c.key).set(row); }catch(e){ console.warn("unsub save", e&&e.code); }
+  await addXp(v==="d"?5:2);
+  try{ sfx.sort(); }catch(_){}
+  U.idx++; paintUnsub();
+  toast(v==="d" ? c.name+": sent to the script. It unsubscribes on its next run. +5 XP" : c.name+": kept. +2 XP");
+}
+
+async function decideBatch(){
+  if(U.busy) return; const batch=U.cands.slice(U.idx, U.idx+U.size); if(!batch.length) return;
+  const keepKeys=new Set([...document.querySelectorAll("[data-ub]")].filter(x=>!x.checked).map(x=>x.dataset.ub));
+  U.busy=true; paintUnsub();
+  let ok=0, kept=0, failed=0;
+  try{
+    const id = await ensureUnsubLabel(ULABEL.approved);
+    for(const c of batch){
+      const keep=keepKeys.has(c.key);
+      if(!keep){
+        try{ for(const tid of c.threadIds) await gmail("label_thread", {threadId:tid, labelIds:[id]}); }
+        catch(e){ failed++; continue; }
+      }
+      const row={email:c.email, name:c.name, status:keep?"keep":"approved", count:c.count, at:new Date().toISOString()};
+      (S.unsub=S.unsub||[]).push(Object.assign({_id:c.key},row));
+      if(db) try{ await db.doc("unsub/"+c.key).set(row); }catch(e){ console.warn("unsub save", e&&e.code); }
+      if(keep) kept++; else ok++;
+    }
+  }catch(e){ toast("Couldn't set up the Gmail label ("+(e.code||"error")+"). Nothing changed."); U.busy=false; paintUnsub(); return; }
+  await addXp(ok*5+kept*2);
+  try{ sfx.sort(); }catch(_){}
+  U.busy=false; const dec=new Set((S.unsub||[]).map(d=>d._id)); U.cands=U.cands.filter(c=>!dec.has(c.key)); U.idx=0;
+  paintUnsub();
+  toast(`${ok} sent to the script, ${kept} kept${failed?`, ${failed} failed and are still in the list`:""}.`);
+}
+async function refreshUnsubStatus(){
+  if(!mcp){ U.note="Gmail isn't allowed for this page yet."; paintUnsub(); return; }
+  U.note="Checking Gmail labels..."; paintUnsub();
+  const res={};
+  try{
+    for(const k of ["done","click"]){
+      const q="label:"+ULABEL[k].toLowerCase().replace(/\//g,"-");
+      const p=await gmail("search_threads", {query:q, pageSize:50, view:"THREAD_VIEW_SUMMARY"});
+      res[k]=((p&&p.threads)||[]).map(t=>{ const m=(t.messages||[])[0]||{}; return {name:((m.addressDisplayNames||[]).find(a=>a.emailAddress===m.sender)||{}).displayName||m.sender||"", subject:m.subject||"", url:t.viewUrl||m.viewUrl||""}; });
+    }
+    U.status=res; U.note="Progress updated.";
+  }catch(e){ U.note="Couldn't read the labels ("+(e.code||"error")+")."; }
+  paintUnsub();
+}
+function paintUnsub(){
+  const el=$("#unsubBody"); if(!el) return;
+  const c=U.cands[U.idx]; const all=S.unsub||[];
+  const appr=all.filter(d=>d.status==="approved").length, kept=all.filter(d=>d.status==="keep").length;
+  const left=Math.max(0,U.cands.length-U.idx); $("#nUnsub").textContent = left?String(left):"";
+  const hintCss='background:rgba(255,255,255,.85);border-radius:12px;padding:8px 12px;margin:10px 0';
+  let h=`<div class="row"><button class="btn primary" data-ua="scan" type="button" ${U.scanning?"disabled":""}>${U.cands.length?"RESCAN":"FIND CLUTTER"}</button> <button class="btn" data-ua="status" type="button">CHECK SCRIPT PROGRESS</button></div>
+  <p style="${hintCss}">${esc(U.note||"Reads your last 60 days of Promotions, Updates and Social, groups them by sender, and lets you decide one at a time. Nothing is unsubscribed until the Apps Script runs.")} <b>${appr}</b> sent to the script, <b>${kept}</b> kept.</p>`;
+  const batch=U.cands.slice(U.idx, U.idx+U.size);
+  if(batch.length){
+    h+=`<div class="card" id="ubatch">
+      <div class="pills"><span class="pill noise">BATCH OF ${batch.length}</span><span class="pill age">${left} LEFT</span></div>
+      <div class="summary" style="font-size:15px;margin-top:8px">Everything is checked. Uncheck anything you want to keep, then press the button.</div>
+      <ul style="list-style:none;padding:0;margin:10px 0 0">${batch.map(c=>`<li style="padding:6px 0;border-bottom:1px solid #eadfc6"><label style="display:flex;gap:8px;cursor:pointer;align-items:flex-start"><input type="checkbox" data-ub="${esc(c.key)}" checked style="margin-top:4px;width:18px;height:18px"><span style="min-width:0;overflow-wrap:anywhere"><b>${esc(c.name)}</b> <span style="color:var(--dim)">${esc(c.email)}</span><br><span style="font-size:13px;color:var(--dim)">${c.count} emails, ${c.unread} unread. ${esc(c.subject)}</span></span></label></li>`).join("")}</ul>
+      <div class="row" style="margin-top:14px"><button class="btn pink" data-ua="batch" type="button" ${U.busy?"disabled":""}>${U.busy?"WORKING...":"UNSUBSCRIBE CHECKED"}</button> <button class="btn" data-ua="size" type="button">BATCH SIZE: ${U.size}</button> <button class="btn" data-ua="skip" type="button">SKIP THESE</button></div>
+    </div>`;
+  } else if(U.cands.length && !U.scanning){
+    h+=`<div class="card"><div class="empty"><h2>All sorted!</h2><p>Every sender is decided. Run the Apps Script, then tap Check Script Progress.</p></div></div>`;
+  }
+  if(U.status){
+    const dn=U.status.done||[], ck=U.status.click||[];
+    h+=`<h2 class="sec">Script progress</h2><p style="${hintCss}"><b>${dn.length}</b> threads unsubscribed by the script. <b>${ck.length}</b> need a click from you.</p>`;
+    h+=ck.map(x=>`<div class="row" style="justify-content:space-between"><span><b>${esc(x.name)}</b> ${esc(x.subject)}</span> <a class="btn" href="${esc(x.url)}" target="_blank" rel="noopener">OPEN EMAIL</a></div>`).join("");
+  }
+  el.innerHTML=h;
+}
+document.addEventListener("click", e=>{
+  const b=e.target.closest("#unsubBody button"); if(!b) return;
+  if(b.dataset.ua==="scan") scanClutter(); else if(b.dataset.ua==="status") refreshUnsubStatus(); else if(b.dataset.ua==="batch") decideBatch(); else if(b.dataset.ua==="skip"){ U.idx+=U.size; paintUnsub(); } else if(b.dataset.ua==="size"){ U.size = U.size===10?25:U.size===25?50:10; paintUnsub(); } else if(b.dataset.u) decideUnsub(b.dataset.u);
+});
+
+/* ---------- tabs ---------- */
+const TABS=["sort","drafts","waiting","unsub","shop"];
+function currentTab(){ const h=(location.hash||"").slice(1); return TABS.includes(h)?h:"sort"; }
+function showTab(){
+  const t=currentTab();
+  TABS.forEach(x=>{ $("#v-"+x).hidden = x!==t; });
+  document.querySelectorAll("nav.tabs a").forEach(a=>a.setAttribute("aria-current", a.dataset.tab===t?"page":"false"));
+  $("#worldName").textContent = t==="drafts" ? "WORLD 2 · DRAFT ROOM" : t==="shop" ? "SHOP" : t==="unsub" ? "WORLD 3 · UNSUB RUN" : "WORLD 1 · SORT";
+  if(t==="drafts"){ paintDrafts(); rankDrafts(); writeQueuedDrafts(); draftLoopCheck(); }
+  if(t==="waiting") paintWaiting();
+  if(t==="unsub") paintUnsub();
+  if(t==="shop") paintShop();
+}
+window.addEventListener("hashchange", showTab);
+showTab();
+
+/* ---------- boot ---------- */
+function subscribe(name, assign){
+  return new Promise(res=>{
+    let first=true; const timer=setTimeout(()=>{ if(first){ first=false; res(); } }, 10000);
+    db.collection(name).onSnapshot(snap=>{ assign(snap.docs.map(d=>Object.assign({_id:d.id}, d.data()))); if(first){ first=false; clearTimeout(timer); res(); } else onRemote(name); }, err=>{ console.warn(name, err&&err.code); if(first){ first=false; clearTimeout(timer); res(); } });
+  });
+}
+let remoteTimer=null;
+function onRemote(name){ clearTimeout(remoteTimer); remoteTimer=setTimeout(()=>{ paintHud(); if(name==="cards" && !$("#card")) renderCard(); if(currentTab()==="drafts"){ paintDrafts(); rankDrafts(); writeQueuedDrafts(); } if(currentTab()==="waiting") paintWaiting(); if(currentTab()==="shop") paintShop(); }, 400); }
+
+async function boot(){
+  const C = window.claude;
+  if(!C || !C.use){ $("#statusLine").innerHTML=`<span class="warn">Open this on claude.ai to play. Your save file lives there.</span>`; return; }
+  db = await C.use("db");
+  if(!db){ statusLine(); loaded.cards=true; renderCard(); return; }
+  await Promise.all([
+    subscribe("cards", v=>{ const keep=new Map(S.cards.map(c=>[c._id,c])); S.cards=v.map(c=>{ const o=keep.get(c._id)||{}; return Object.assign(c,{loopChecked:o.loopChecked, sumTried:o.sumTried}); }); }),
+    subscribe("drafts", v=>{ S.drafts=v; }),
+    subscribe("waiting", v=>{ S.waiting=v; }),
+    subscribe("ledger", v=>{ S.ledger=v; }),
+    subscribe("wishlist", v=>{ S.wish=v; }),
+    subscribe("queue", v=>{ S.queue=v; }),
+    subscribe("unsub", v=>{ S.unsub=v; }),
+    subscribe("days", v=>{ S.days={}; v.forEach(d=>{ S.days[d._id]=d; }); }),
+  ]);
+  try{ const g = await db.doc("game/state").get(); S.game = (g && g.exists && g.data()) || {xp:0, lifetimeXp:0, streak:0}; }catch(_){ S.game={xp:0, lifetimeXp:0, streak:0}; }
+  loaded.cards=true; loaded.game=true;
+  await closePastDays();
+  statusLine(); renderCard(); showTab();
+  // Light up Gmail and Claude after first paint. Consent prompts arrive on first use.
+  [mcp, sample] = await Promise.all([C.use("mcp"), C.use("sample")]);
+  statusLine(); paintDrafts();
+  if(mcp){ setInterval(drainQueue, 60000); }
+  document.body.insertAdjacentHTML("beforeend", IQDEFS);
+  setInterval(()=>{ draftLoopCheck(); if(currentTab()==="drafts"){ rankDrafts(); writeQueuedDrafts(); } }, 60000);
+  setTimeout(draftLoopCheck, 3000);
+  if(mcp){ refreshInbox(); sweepCalendar(); drainQueue(); if(current && current.kind==="email") closeLoop(current); setInterval(()=>{ if(!document.hidden && !busyLoad) refreshInbox(); }, 300000); }
+  // Finish any summaries a closed tab left half done.
+  if(mcp && sample){ const pend=S.cards.filter(c=>c.status==="open" && c.kind==="email" && c.summed===false).slice(0,24); if(pend.length){ renderCard(); summarize(pend.map(c=>({id:c._id, base:c}))).then(()=>{ if(!busyLoad) $("#loadNote").textContent=""; }); } }
+  if(currentTab()==="drafts") writeQueuedDrafts();
+  // Midnight ET rollover while the page stays open.
+  let lastDay=today(); setInterval(async()=>{ const t=today(); if(t!==lastDay){ lastDay=t; await closePastDays(); renderCard(); } }, 60000);
+}
+boot();
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,8 @@
+# Never commit your own data
+backups/
+*.json
+voice/
+.env
+texts/contacts.json
+*.vcf
+chat.db*

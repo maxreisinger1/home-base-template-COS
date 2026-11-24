@@ -1,0 +1,2 @@
+[paste 00-preamble.md here]
+Optional, Mac only. Daily 6:43pm. Run owe-reply.py 14 per the read-my-texts skill. Business owes become replies (kind reply, channel text, who, askedAt, draft in their voice). Personal owes go ONLY to the private doc data/users/me/owe-replies, never tasks. If an owe was marked done without a reply, treat it as dismissed and don't re-list it. Final message: "N texts waiting on you" or nothing.
